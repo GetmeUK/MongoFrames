@@ -2,17 +2,12 @@
 A set of helpers to simplify the creation of mongo queries.
 """
 
-from . import Frame
+from .frames import Frame
 
 
 __all__ = [
     # Queries
     'Q',
-
-    # Groups
-    'And',
-    'Or',
-    'Nor',
 
     # Operators
     'All',
@@ -21,7 +16,15 @@ __all__ = [
     'Not',
     'NotIn',
     'Size',
-    'Type'
+    'Type',
+
+    # Groups
+    'And',
+    'Or',
+    'Nor',
+
+    # Utils
+    'to_refs'
     ]
 
 
@@ -29,56 +32,18 @@ __all__ = [
 
 class Condition:
     """
-    A query condition of the form `{field: {operator: value}}`.
+    A query condition of the form `{path: {operator: value}}`.
     """
 
-    def __init__(self, field, value, operator):
-        self.field = field
+    def __init__(self, q, value, operator):
+        self.q = q
         self.value = value
         self.operator = operator
 
-    def to_pymongo(self):
+    def to_dict(self):
         if self.operator == '$eq':
-            return {self.field: self.value}
-
-        return {self.field: {self.operator: Frame._pymongo_safe(self.value)}}
-
-
-class Field:
-    """
-    A document field within a query.
-    """
-
-    def __init__(self, key):
-        self.key = key
-
-    def __eq__(self, other):
-        return Condition(self.key, other, '$eq')
-
-    def __ge__(self, other):
-        return Condition(self.key, other, '$gte')
-
-    def __gt__(self, other):
-        return Condition(self.key, other, '$gt')
-
-    def __le__(self, other):
-        return Condition(self.key, other, '$lte')
-
-    def __lt__(self, other):
-        return Condition(self.key, other, '$lt')
-
-    def __ne__(self, other):
-        return Condition(self.key, other, '$ne')
-
-    def __iadd__(self, other):
-        return Condition(self.key, other, '$in')
-
-    def __isub__(self, other):
-        return Condition(self.key, other, '$nin')
-
-    def __getattr__(self, name):
-        self.key = '{0}.{1}'.format(self.key, name)
-        return self
+            return {self.q: self.value}
+        return {self.q: {self.operator: self.value}}
 
 
 class QMeta(type):
@@ -87,22 +52,73 @@ class QMeta(type):
     """
 
     def __getattr__(self, name):
-        return Field(name)
+        return Q(name)
 
     def __getitem__(self, name):
-        return Field(name)
+        return Q(name)
 
 
 class Q(metaclass=QMeta):
     """
-    A class for starting and building queries, for example:
-
-    query = Q.name == 'Steve Wozniak'
-
-    ...will convert to...
-
-    {name: 'Steve Wozniak'}
+    Start point for query creation.
     """
+
+    def __init__(self, path):
+        self._path = path
+
+    def __eq__(self, other):
+        return Condition(self._path, other, '$eq')
+
+    def __ge__(self, other):
+        return Condition(self._path, other, '$gte')
+
+    def __gt__(self, other):
+        return Condition(self._path, other, '$gt')
+
+    def __le__(self, other):
+        return Condition(self._path, other, '$lte')
+
+    def __lt__(self, other):
+        return Condition(self._path, other, '$lt')
+
+    def __ne__(self, other):
+        return Condition(self._path, other, '$ne')
+
+    def __getattr__(self, name):
+        self._path = '{0}.{1}'.format(self._path, name)
+        return self
+
+    def __getitem__(self, name):
+        self._path = '{0}.{1}'.format(self._path, name)
+        return self
+
+
+# Operators
+
+def All(q, value):
+    return Condition(q._path, Frame._pymongo_safe(value), '$all')
+
+def Exists(q, value):
+    return Condition(q._path, value, '$exists')
+
+def In(q, value):
+    return Condition(q._path, Frame._pymongo_safe(value), '$in')
+
+def Not(condition):
+    return Condition(
+        condition.q,
+        {condition.operator: condition.value},
+        '$not'
+        )
+
+def NotIn(q, value):
+    return Condition(q._path, Frame._pymongo_safe(value), '$nin')
+
+def Size(q, value):
+    return Condition(q._path, value, '$size')
+
+def Type(q, value):
+    return Condition(q._path, value, '$type')
 
 
 # Groups
@@ -115,11 +131,11 @@ class Group:
     def __init__(self, *conditions):
         self.conditions = conditions
 
-    def to_pymongo(self):
+    def to_dict(self):
         raw_conditions = []
         for condition in self.conditions:
-            if hasattr(condition, 'to_pymongo'):
-                raw_conditions.append(condition.to_pymongo())
+            if hasattr(condition, 'to_dict'):
+                raw_conditions.append(condition.to_dict())
             else:
                 raw_conditions.append(condition)
         return {self.operator: raw_conditions}
@@ -140,32 +156,21 @@ class Nor(Group):
     operator = '$nor'
 
 
-# Operators
+# Utils
 
-def All(field, value):
-    return Condition(field.key, Frame._pymongo_safe(value), '$all')
+def to_refs(value):
+    """Convert all Frame instances within the given value to Ids"""
 
-def Exists(field, value):
-    return Condition(field.key, value, '$exists')
+    # Frame
+    if isinstance(value, Frame):
+        return value._id
 
-def In(field, value):
-    return Condition(field.key, Frame._pymongo_safe(value), '$in')
+    # Lists
+    elif isinstance(value, (list, tuple)):
+        return [to_refs(v) for v in value]
 
-def Not(condition):
-    if condition.operator == '$eq':
-        return Condition(condition.field, condition.value, '$not')
+    # Dictionaries
+    elif isinstance(value, dict):
+        return {k: to_refs(v) for k, v in value.items()}
 
-    return Condition(
-        condition.field,
-        {condition.operator: condition.value},
-        '$not'
-        )
-
-def NotIn(field, value):
-    return Condition(field.key, Frame._pymongo_safe(value), '$nin')
-
-def Size(field, value):
-    return Condition(field.key, value, '$size')
-
-def Type(field, value):
-    return Condition(field.key, value, '$type')
+    return value
