@@ -37,7 +37,7 @@ class Frame:
     # Cache for dot syntax path conversions to keys (don't modify)
     _paths = {}
 
-    def __init__(self, document=None):
+    def __init__(self, **document):
         if not document:
             document = {}
         self._document = document
@@ -230,8 +230,8 @@ class Frame:
         kwargs['projection'], references = \
                 cls._flatten_projection(kwargs.get('projection'))
 
-        if hasattr(filter, 'to_pymongo'):
-            filter = filter.to_pymongo()
+        if hasattr(filter, 'to_dict'):
+            filter = filter.to_dict()
 
         return cls.get_collection().count(filter, **kwargs)
 
@@ -244,8 +244,8 @@ class Frame:
                 cls._flatten_projection(kwargs.get('projection'))
 
         # Find the document
-        if hasattr(filter, 'to_pymongo'):
-            filter = filter.to_pymongo()
+        if hasattr(filter, 'to_dict'):
+            filter = filter.to_dict()
 
         document = cls.get_collection().find_one(filter, **kwargs)
 
@@ -268,8 +268,8 @@ class Frame:
                 cls._flatten_projection(kwargs.get('projection'))
 
         # Find the documents
-        if hasattr(filter, 'to_pymongo'):
-            filter = filter.to_pymongo()
+        if hasattr(filter, 'to_dict'):
+            filter = filter.to_dict()
 
         documents = list(cls.get_collection().find(filter, **kwargs))
 
@@ -381,7 +381,7 @@ class Frame:
         should be bound to a frame class like so:
 
         ```
-        MyFrameClass.listen('insert', MyFrameClass.insertStamp)
+        MyFrameClass.listen('insert', MyFrameClass.timestamp_insert)
         ```
         """
         for document in documents:
@@ -396,7 +396,7 @@ class Frame:
         bound to a frame class like so:
 
         ```
-        MyFrameClass.listen('update', MyFrameClass.updateStamp)
+        MyFrameClass.listen('update', MyFrameClass.timestamp_update)
         ```
         """
         for document in documents:

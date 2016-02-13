@@ -132,7 +132,7 @@ class Group:
     def to_dict(self):
         raw_conditions = []
         for condition in self.conditions:
-            if hasattr(condition, 'to_dict'):
+            if isinstance(condition, (Condition, Group)):
                 raw_conditions.append(condition.to_dict())
             else:
                 raw_conditions.append(condition)

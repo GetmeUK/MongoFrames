@@ -100,10 +100,10 @@ def test_to_refs():
     """Should convert all Frame instances within a value to Ids"""
 
     # Convert a single Frame instance
-    assert to_refs(Frame({'_id': 1})) == 1
+    assert to_refs(Frame(_id=1)) == 1
 
     # Convert a list of Frame instances
-    assert to_refs([Frame({'_id': 1}), Frame({'_id': 2})]) == [1, 2]
+    assert to_refs([Frame(_id=1), Frame(_id=2)]) == [1, 2]
 
     # Convert a dictionary of Frame instances
-    assert to_refs({1: Frame({'_id': 1}), 2: Frame({'_id': 2})}) == {1: 1, 2: 2}
+    assert to_refs({1: Frame(_id=1), 2: Frame(_id=2)}) == {1: 1, 2: 2}
