@@ -2,8 +2,6 @@
 A set of helpers to simplify the creation of mongo queries.
 """
 
-from .frames import Frame
-
 
 __all__ = [
     # Queries
@@ -96,13 +94,13 @@ class Q(metaclass=QMeta):
 # Operators
 
 def All(q, value):
-    return Condition(q._path, Frame._pymongo_safe(value), '$all')
+    return Condition(q._path, to_refs(value), '$all')
 
 def Exists(q, value):
     return Condition(q._path, value, '$exists')
 
 def In(q, value):
-    return Condition(q._path, Frame._pymongo_safe(value), '$in')
+    return Condition(q._path, to_refs(value), '$in')
 
 def Not(condition):
     return Condition(
@@ -112,7 +110,7 @@ def Not(condition):
         )
 
 def NotIn(q, value):
-    return Condition(q._path, Frame._pymongo_safe(value), '$nin')
+    return Condition(q._path, to_refs(value), '$nin')
 
 def Size(q, value):
     return Condition(q._path, value, '$size')
@@ -160,6 +158,7 @@ class Nor(Group):
 
 def to_refs(value):
     """Convert all Frame instances within the given value to Ids"""
+    from .frames import Frame
 
     # Frame
     if isinstance(value, Frame):

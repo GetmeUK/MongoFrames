@@ -21,19 +21,18 @@ class Frame:
     directly) to achieve acceptable performance.
     """
 
+    #
+    _client = None
+
+    #
+    _db = None
+
     # IMPORTANT: These class attributes must be set in inheriting classes
     _collection = None
     _fields = []
 
     # A list of fields that should be ignored by to_dict
     _private_fields = []
-
-    # A list of fields that should be exluded from comparisons
-    _uncompared_fields = [
-        '_id',
-        'created',
-        'modified'
-        ]
 
     # Cache for dot syntax path conversions to keys (don't modify)
     _paths = {}
@@ -53,24 +52,6 @@ class Frame:
 
     def __lt__(self, other):
         return self._id < other._id
-
-    @property
-    def comparable(self):
-        # Return a dictionary that can be compared (used for generating
-        # changelog entries).
-        document_dict = self._compare_safe(self._document)
-
-        # Remove uncompared fields
-        self._remove_keys(document_dict, self._uncompared_fields)
-
-        # Remove any empty values
-        clean_document_dict = {}
-        for k, v in document_dict.items():
-            if not v and not isinstance(v, (int, float)):
-                continue
-            clean_document_dict[k] = v
-
-        return clean_document_dict
 
     @property
     def _pymongo_document(self):
@@ -459,24 +440,6 @@ class Frame:
     # Serializing
 
     @classmethod
-    def _compare_safe(cls, value):
-        """Return a value that can be safely compared"""
-
-        # Date
-        if type(value) == date:
-            return str(value)
-
-        # Lists
-        elif isinstance(value, (list, tuple)):
-            return [cls._compare_safe(v) for v in value]
-
-        # Dictionaries
-        elif isinstance(value, dict):
-            return {k:cls._compare_safe(v) for k, v in value.items()}
-
-        return value
-
-    @classmethod
     def _json_safe(cls, value):
         """Return JSON safe value"""
         # Date
@@ -518,7 +481,7 @@ class Frame:
 
     @classmethod
     def _path_to_value(cls, path, parent_dict):
-        """Return a value from a dictionary at the given path path"""
+        """Return a value from a dictionary at the given path"""
         keys = cls._path_to_keys(path)
 
         # Traverse to the tip of the path
@@ -580,7 +543,14 @@ class Frame:
     @classmethod
     def get_collection(cls):
         """Return a reference to the database collection for the class"""
-        return getattr(db, cls._collection)
+        return getattr(self.get_db(), cls._collection)
+
+    @classmethod
+    def get_db(cls):
+        """Return the database for the collection"""
+        if cls._db:
+            return getattr(self._client, cls._db)
+        return self._client.get_default_database()
 
     @classmethod
     def get_fields(cls):
