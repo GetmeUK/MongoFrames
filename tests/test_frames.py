@@ -128,7 +128,7 @@ def test_to_json_type(mongo_client):
     # @@ Frame
     # @@ List
     # @@ Dictionary
-    # @@ SubFrame?
+    # @@ SubFrame
 
     cave = Lair(
         name='Cave',

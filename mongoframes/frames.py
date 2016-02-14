@@ -8,11 +8,6 @@ __all__ = [
     ]
 
 
-# Support for indexes
-# Better identification of queries
-# Support for embedded-documents
-
-
 class _BaseFrame:
     """
     Base class for Frames and SubFrames.
@@ -168,17 +163,17 @@ class Frame(_BaseFrame):
     directly) to achieve acceptable performance.
     """
 
-    #
+    # The MongoDB client used to interface with the database
     _client = None
 
-    #
+    # The database on which this collection the frame represents is located
     _db = None
 
     # IMPORTANT: These class attributes must be set in inheriting classes
     _collection = None
     _fields = []
 
-    # A list of fields that should be ignored by to_dict
+    # A list of fields that should be ignored by `to_json_type`
     _private_fields = []
 
     # Cache for dot syntax path conversions to keys (don't modify)
@@ -343,9 +338,9 @@ class Frame(_BaseFrame):
     @classmethod
     def count(cls, filter=None, **kwargs):
         """Return a count of documents matching the filter"""
-        from mongoframes.queries import to_refs
+        from mongoframes.queries import Condition, Group, to_refs
 
-        if hasattr(filter, 'to_dict'):
+        if isinstance(filter, (Condition, Group)):
             filter = filter.to_dict()
 
         return cls.get_collection().count(to_refs(filter), **kwargs)
@@ -353,14 +348,14 @@ class Frame(_BaseFrame):
     @classmethod
     def one(cls, filter, **kwargs):
         """Find the first document matching the filter"""
-        from mongoframes.queries import to_refs
+        from mongoframes.queries import Condition, Group, to_refs
 
         # Flatten the projection
         kwargs['projection'], references, subs = \
                 cls._flatten_projection(kwargs.get('projection'))
 
         # Find the document
-        if hasattr(filter, 'to_dict'):
+        if isinstance(filter, (Condition, Group)):
             filter = filter.to_dict()
 
         document = cls.get_collection().find_one(to_refs(filter), **kwargs)
@@ -382,14 +377,14 @@ class Frame(_BaseFrame):
     @classmethod
     def many(cls, filter=None, **kwargs):
         """Return a list of documents matching the filter"""
-        from mongoframes.queries import to_refs
+        from mongoframes.queries import Condition, Group, to_refs
 
         # Flatten the projection
         kwargs['projection'], references, subs = \
                 cls._flatten_projection(kwargs.get('projection'))
 
         # Find the documents
-        if hasattr(filter, 'to_dict'):
+        if isinstance(filter, (Condition, Group)):
             filter = filter.to_dict()
 
         documents = list(cls.get_collection().find(to_refs(filter), **kwargs))
