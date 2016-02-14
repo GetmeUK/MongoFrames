@@ -12,11 +12,11 @@ class Dragon(Frame):
     """
 
     _collection = 'Dragon'
-    _fields = [
+    _fields = {
         'name',
         'breed'
-        ]
-    _private_fields = ['breed']
+        }
+    _private_fields = {'breed'}
 
 
 class Lair(Frame):
@@ -25,10 +25,22 @@ class Lair(Frame):
     """
 
     _collection = 'Lair'
-    _fields = [
+    _fields = {
         'name',
-        'gold'
-        ]
+        'inventory'
+        }
+
+
+class Inventory(SubFrame):
+    """
+    An inventory of items kept within a lair.
+    """
+
+    _fields = {
+        'gold',
+        'skulls'
+        }
+    _private_fields = {'gold'}
 
 
 # Fixtures
@@ -118,21 +130,24 @@ def test_to_json_type(mongo_client):
     # Create a dragon
     class ComplexDragon(Dragon):
 
-        _fields = Dragon._fields + [
+        _fields = Dragon._fields.union({
             'lair'
-            ]
+            })
 
     # @@ Date
     # @@ Datetime
     # @@ ObjectId
-    # @@ Frame
     # @@ List
     # @@ Dictionary
-    # @@ SubFrame
+
+    inventory = Inventory(
+        gold=1000,
+        skulls=100
+        )
 
     cave = Lair(
         name='Cave',
-        gold=100
+        inventory=inventory
         )
     cave.insert()
 
@@ -149,9 +164,23 @@ def test_to_json_type(mongo_client):
         'lair': {
             '_id': str(cave._id),
             'name': 'Cave',
-            'gold': 100
+            'inventory': {
+                'skulls': 100
+                }
             }
         }
+
+    burt = ComplexDragon.one(
+        Q.name == 'Burt',
+        projection={
+            'lair': {
+                '$ref': Lair,
+                'inventory': {'$sub': Inventory}
+                }
+            }
+        )
+
+    print(burt.lair.inventory)
 
 def test_insert(mongo_client):
     """Should insert a record into the database"""

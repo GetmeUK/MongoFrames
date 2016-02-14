@@ -13,6 +13,16 @@ class _BaseFrame:
     Base class for Frames and SubFrames.
     """
 
+    # The documents defined fields
+    _fields = set()
+
+    # A set of private fields that will be excluded from the output of
+    # `to_json_type`.
+    _private_fields = set()
+
+    # A cache used to
+    _path_to_keys_cache = {}
+
     def __init__(self, **document):
         if not document:
             document = {}
@@ -22,17 +32,17 @@ class _BaseFrame:
     # against the `_document`. Attribute names are converted to camelcase.
 
     def __getattr__(self, name):
-        if '_document' in self.__dict__ and name in self.get_fields():
+        if '_document' in self.__dict__ and name in self._fields:
             return self.__dict__['_document'].get(name, None)
         raise AttributeError(
             "'{0}' has no attribute '{1}'".format(self.__class__.__name__, name)
             )
 
     def __setattr__(self, name, value):
-        if '_document' in self.__dict__ and name in self.get_fields():
+        if '_document' in self.__dict__ and name in self._fields:
             self.__dict__['_document'][name] = value
             return
-        super(Frame, self).__setattr__(name, value)
+        super(_BaseFrame, self).__setattr__(name, value)
 
     # Serializing
 
@@ -79,9 +89,9 @@ class _BaseFrame:
         """Return a list of keys for a given path"""
 
         # Paths are cached for performance
-        keys = cls._paths.get(path)
+        keys = _BaseFrame._path_to_keys_cache.get(path)
         if keys is None:
-            keys = cls._paths[path] = path.split('.')
+            keys = _BaseFrame._path_to_keys_cache[path] = path.split('.')
 
         return keys
 
@@ -126,27 +136,23 @@ class _BaseFrame:
             if keys[-1] in child_dict:
                 child_dict.pop(keys[-1])
 
-    # Misc.
 
-    @classmethod
-    def get_fields(cls):
-        """Return the field names that can be set for the class"""
+class FrameMeta(type):
+    """
+    Meta class for `Frame`s to ensure an `_id` is present in any defined set of
+    fields.
+    """
 
-        # We set/use a cache for the output of this method as it's called every
-        # time a fields value is requested using (.) dot notation and therefore
-        # is performance critical.
+    def __new__(meta, name, bases, dct):
 
-        # Use the cached if set
-        if hasattr(cls, '_get_fields_cache'):
-            return cls._get_fields_cache
+        # If a set of fields is defined ensure it contains `_id`
+        if '_fields' in dct and not '_id' in dct['_fields']:
+            dct['_fields'].update({'_id'})
 
-        # Set the cache if not
-        cls._get_fields_cache = set(cls._fields + ['_id'])
-
-        return cls._get_fields_cache
+        return super(FrameMeta, meta).__new__(meta, name, bases, dct)
 
 
-class Frame(_BaseFrame):
+class Frame(_BaseFrame, metaclass=FrameMeta):
     """
     Frames provide support for:
 
@@ -169,15 +175,11 @@ class Frame(_BaseFrame):
     # The database on which this collection the frame represents is located
     _db = None
 
-    # IMPORTANT: These class attributes must be set in inheriting classes
+    # The database collection this frame represents
     _collection = None
-    _fields = []
 
-    # A list of fields that should be ignored by `to_json_type`
-    _private_fields = []
-
-    # Cache for dot syntax path conversions to keys (don't modify)
-    _paths = {}
+    # The documents defined fields
+    _fields = set()
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -370,7 +372,7 @@ class Frame(_BaseFrame):
 
         # Add sub-frames to the documents (if required)
         if subs:
-            cls._subframes(documents, subs)
+            cls._sub_frames(documents, subs)
 
         return cls(**document)
 
@@ -395,7 +397,7 @@ class Frame(_BaseFrame):
 
         # Add sub-frames to the documents (if required)
         if subs:
-            cls._subframes(documents, subs)
+            cls._sub_frames(documents, subs)
 
         return [cls(**d) for d in documents]
 
@@ -467,7 +469,7 @@ class Frame(_BaseFrame):
 
         # If `projection` is empty return a full projection based on `_fields`
         if not projection:
-            return {fn: True for fn in cls.get_fields()}, {}
+            return {fn: True for fn in cls._fields}, {}, {}
 
         # Flatten the projection
         flat_projection = {}
@@ -499,11 +501,12 @@ class Frame(_BaseFrame):
         # If only references and sub-frames where specified in the projection
         # then return a full projection based on `_fields`.
         if inclusive:
-            flat_projection = {fn: True for fn in cls.get_fields()}
+            flat_projection = {fn: True for fn in cls._fields}
 
         return flat_projection, references, subs
 
-    def _sub_frames(self, documents, subs):
+    @classmethod
+    def _sub_frames(cls, documents, subs):
         """Convert embedded documents to sub-frames for one or more documents"""
 
         # Dereference each reference
@@ -613,7 +616,6 @@ class Frame(_BaseFrame):
         if cls._db:
             return getattr(cls._client, cls._db)
         return cls._client.get_default_database()
-
 
 
 class SubFrame(_BaseFrame):
