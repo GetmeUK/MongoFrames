@@ -234,6 +234,7 @@ class Frame:
     @classmethod
     def count(cls, filter=None, **kwargs):
         """Return a count of documents matching the filter"""
+        from mongoframes.queries import to_refs
 
         # Flatten the projection
         kwargs['projection'], references = \
@@ -242,11 +243,12 @@ class Frame:
         if hasattr(filter, 'to_dict'):
             filter = filter.to_dict()
 
-        return cls.get_collection().count(filter, **kwargs)
+        return cls.get_collection().count(to_refs(filter), **kwargs)
 
     @classmethod
     def one(cls, filter, **kwargs):
         """Find the first document matching the filter"""
+        from mongoframes.queries import to_refs
 
         # Flatten the projection
         kwargs['projection'], references = \
@@ -256,7 +258,7 @@ class Frame:
         if hasattr(filter, 'to_dict'):
             filter = filter.to_dict()
 
-        document = cls.get_collection().find_one(filter, **kwargs)
+        document = cls.get_collection().find_one(to_refs(filter), **kwargs)
 
         # Make sure we found a document
         if not document:
@@ -271,6 +273,7 @@ class Frame:
     @classmethod
     def many(cls, filter=None, **kwargs):
         """Return a list of documents matching the filter"""
+        from mongoframes.queries import to_refs
 
         # Flatten the projection
         kwargs['projection'], references = \
@@ -280,7 +283,7 @@ class Frame:
         if hasattr(filter, 'to_dict'):
             filter = filter.to_dict()
 
-        documents = list(cls.get_collection().find(filter, **kwargs))
+        documents = list(cls.get_collection().find(to_refs(filter), **kwargs))
 
         # Dereference the documents (if required)
         if references:
