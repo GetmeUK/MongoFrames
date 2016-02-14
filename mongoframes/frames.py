@@ -2,12 +2,156 @@ from blinker import signal
 from bson.objectid import ObjectId
 from datetime import date, datetime, time, timezone
 
+__all__ = [
+    'Frame',
+    'SubFrame'
+    ]
+
 
 # Support for indexes
+# Better identification of queries
 # Support for embedded-documents
 
 
-class Frame:
+class _BaseFrame:
+    """
+    Base class for Frames and SubFrames.
+    """
+
+    def __init__(self, **document):
+        if not document:
+            document = {}
+        self._document = document
+
+    # Get/Set attribute methods are overwritten to support for setting values
+    # against the `_document`. Attribute names are converted to camelcase.
+
+    def __getattr__(self, name):
+        if '_document' in self.__dict__ and name in self.get_fields():
+            return self.__dict__['_document'].get(name, None)
+        raise AttributeError(
+            "'{0}' has no attribute '{1}'".format(self.__class__.__name__, name)
+            )
+
+    def __setattr__(self, name, value):
+        if '_document' in self.__dict__ and name in self.get_fields():
+            self.__dict__['_document'][name] = value
+            return
+        super(Frame, self).__setattr__(name, value)
+
+    # Serializing
+
+    def to_json_type(self):
+        """
+        Return a dictionary for the document with values converted to JSON safe
+        types.
+        """
+        document_dict = self._json_safe(self._document)
+        self._remove_keys(document_dict, self._private_fields)
+        return document_dict
+
+    @classmethod
+    def _json_safe(cls, value):
+        """Return a JSON safe value"""
+        # Date
+        if type(value) == date:
+            return str(value)
+
+        # Datetime
+        elif type(value) == datetime:
+            return value.strftime('%Y-%m-%d %H:%M:%S')
+
+        # Object Id
+        elif isinstance(value, ObjectId):
+            return str(value)
+
+        # Frame
+        elif isinstance(value, _BaseFrame):
+            return value.to_json_type()
+
+        # Lists
+        elif isinstance(value, (list, tuple)):
+            return [cls._json_safe(v) for v in value]
+
+        # Dictionaries
+        elif isinstance(value, dict):
+            return {k:cls._json_safe(v) for k, v in value.items()}
+
+        return value
+
+    @classmethod
+    def _path_to_keys(cls, path):
+        """Return a list of keys for a given path"""
+
+        # Paths are cached for performance
+        keys = cls._paths.get(path)
+        if keys is None:
+            keys = cls._paths[path] = path.split('.')
+
+        return keys
+
+    @classmethod
+    def _path_to_value(cls, path, parent_dict):
+        """Return a value from a dictionary at the given path"""
+        keys = cls._path_to_keys(path)
+
+        # Traverse to the tip of the path
+        child_dict = parent_dict
+        for key in keys[:-1]:
+            child_dict = child_dict.get(key)
+            if child_dict is None:
+                return
+
+        return child_dict.get(keys[-1])
+
+    @classmethod
+    def _remove_keys(cls, parent_dict, paths):
+        """
+        Remove a list of keys from a dictionary.
+
+        Keys are specified as a series of `.` separated paths for keys in child
+        dictionaries, e.g 'parent_key.child_key.grandchild_key'.
+        """
+
+        for path in paths:
+            keys = cls._path_to_keys(path)
+
+            # Traverse to the tip of the path
+            child_dict = parent_dict
+            for key in keys[:-1]:
+                child_dict = child_dict.get(key)
+
+                if child_dict is None:
+                    break
+
+            if child_dict is None:
+                continue
+
+            # Remove the key
+            if keys[-1] in child_dict:
+                child_dict.pop(keys[-1])
+
+    # Misc.
+
+    @classmethod
+    def get_fields(cls):
+        """Return the field names that can be set for the class"""
+
+        # We set/use a cache for the output of this method as it's called every
+        # time a fields value is requested using (.) dot notation and therefore
+        # is performance critical.
+
+        # Use the cached if set
+        if hasattr(cls, '_get_fields_cache'):
+            return cls._get_fields_cache
+
+        # Set the cache if not
+        cls._get_fields_cache = set(cls._fields + ['_id'])
+
+        return cls._get_fields_cache
+
+
+class Frame(_BaseFrame):
     """
     Frames provide support for:
 
@@ -40,11 +184,6 @@ class Frame:
     # Cache for dot syntax path conversions to keys (don't modify)
     _paths = {}
 
-    def __init__(self, **document):
-        if not document:
-            document = {}
-        self._document = document
-
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
@@ -58,41 +197,11 @@ class Frame:
     def __lt__(self, other):
         return self._id < other._id
 
-    @property
-    def _pymongo_document(self):
-        # Return a version of the document suitable for use with pymongo.
-        from mongoframes.queries import to_refs
-        return to_refs(self._document)
-
-    def to_json_type(self):
-        """
-        Return a dictionary for the document with values converted to JSON safe
-        types.
-        """
-        document_dict = self._json_safe(self._document)
-        self._remove_keys(document_dict, self._private_fields)
-        return document_dict
-
-    # Get/Set attribute methods are overwritten to support for setting values
-    # against the `_document`. Attribute names are converted to camelcase.
-
-    def __getattr__(self, name):
-        if '_document' in self.__dict__ and name in self.get_fields():
-            return self.__dict__['_document'].get(name, None)
-        raise AttributeError(
-            "'{0}' has no attribute '{1}'".format(self.__class__.__name__, name)
-            )
-
-    def __setattr__(self, name, value):
-        if '_document' in self.__dict__ and name in self.get_fields():
-            self.__dict__['_document'][name] = value
-            return
-        super(Frame, self).__setattr__(name, value)
-
     # Operations
 
     def insert(self):
         """Insert a document"""
+        from mongoframes.queries import to_refs
 
         assert '_id' not in self._document, "Can't insert documents with `_id`"
 
@@ -100,7 +209,7 @@ class Frame:
         signal('insert').send(self.__class__, documents=[self])
 
         # Prepare the documents to be inserted
-        document = self._pymongo_document
+        document = to_refs(self._document)
 
         # Insert the document and update the Id
         self._id = self.get_collection().insert_one(document).inserted_id
@@ -110,6 +219,7 @@ class Frame:
 
     def update(self):
         """Update a document"""
+        from mongoframes.queries import to_refs
 
         assert '_id' in self._document, "Can't update documents without `_id`"
 
@@ -117,7 +227,7 @@ class Frame:
         signal('update').send(self.__class__, documents=[self])
 
         # Prepare the documents to be updated
-        document = self._pymongo_document
+        document = to_refs(self._document)
 
         # Update the document
         self.get_collection().update_one({'_id': self._id}, {'$set': document})
@@ -133,9 +243,6 @@ class Frame:
         # Send delete signal
         signal('delete').send(self.__class__, documents=[self])
 
-        # Prepare the documents to be delete
-        document = self._pymongo_document
-
         # Delete the document
         self.get_collection().delete_one({'_id': self._id})
 
@@ -145,6 +252,7 @@ class Frame:
     @classmethod
     def insert_many(cls, documents):
         """Insert a list of documents"""
+        from mongoframes.queries import to_refs
 
         # Ensure all documents have been converted to frames
         frames = cls._ensure_frames(documents)
@@ -156,7 +264,7 @@ class Frame:
         signal('insert').send(cls, documents=frames)
 
         # Prepare the documents to be inserted
-        documents = [f._pymongo_document for f in frames]
+        documents = [to_refs(f._document) for f in frames]
 
         # Bulk insert
         ids = cls.get_collection().insert_many(documents).inserted_ids
@@ -171,6 +279,7 @@ class Frame:
     @classmethod
     def update_many(cls, documents):
         """Update multiple documents"""
+        from mongoframes.queries import to_refs
 
         # Ensure all documents have been converted to frames
         frames = cls._ensure_frames(documents)
@@ -183,7 +292,7 @@ class Frame:
         signal('update').send(cls, documents=frames)
 
         # Prepare the documents to be updated
-        documents = [f._pymongo_document for f in frames]
+        documents = [to_refs(f._document) for f in frames]
 
         # Update the documents
         for document in documents:
@@ -236,10 +345,6 @@ class Frame:
         """Return a count of documents matching the filter"""
         from mongoframes.queries import to_refs
 
-        # Flatten the projection
-        kwargs['projection'], references = \
-                cls._flatten_projection(kwargs.get('projection'))
-
         if hasattr(filter, 'to_dict'):
             filter = filter.to_dict()
 
@@ -251,7 +356,7 @@ class Frame:
         from mongoframes.queries import to_refs
 
         # Flatten the projection
-        kwargs['projection'], references = \
+        kwargs['projection'], references, subs = \
                 cls._flatten_projection(kwargs.get('projection'))
 
         # Find the document
@@ -268,6 +373,10 @@ class Frame:
         if references:
             cls._dereference([document], references)
 
+        # Add sub-frames to the documents (if required)
+        if subs:
+            cls._subframes(documents, subs)
+
         return cls(**document)
 
     @classmethod
@@ -276,7 +385,7 @@ class Frame:
         from mongoframes.queries import to_refs
 
         # Flatten the projection
-        kwargs['projection'], references = \
+        kwargs['projection'], references, subs = \
                 cls._flatten_projection(kwargs.get('projection'))
 
         # Find the documents
@@ -289,6 +398,10 @@ class Frame:
         if references:
             cls._dereference(documents, references)
 
+        # Add sub-frames to the documents (if required)
+        if subs:
+            cls._subframes(documents, subs)
+
         return [cls(**d) for d in documents]
 
     @classmethod
@@ -297,6 +410,10 @@ class Frame:
 
         # Dereference each reference
         for path, projection in references.items():
+
+            # Check there is a $ref in the projection, else skip it
+            if '$ref' not in projection:
+                continue
 
             # Collect Ids of documents to dereference
             ids = []
@@ -311,10 +428,7 @@ class Frame:
                     ids.extend(value)
 
             # Find the referenced documents
-            if '$ref' not in projection:
-                continue
             ref = projection.pop('$ref')
-
             frames = ref.many(
                 {'_id': {'$in': ids}},
                 projection=projection
@@ -328,8 +442,10 @@ class Frame:
                     continue
 
                 if isinstance(value, ObjectId):
+                    # Single reference
                     value = frames.get(value, None)
                 else:
+                    # List of references
                     value = [frames[id] for id in value if id in frames]
 
                 child_document = document
@@ -361,15 +477,23 @@ class Frame:
         # Flatten the projection
         flat_projection = {}
         references = {}
+        subs = {}
         inclusive = True
         for key, value in projection.items():
             if isinstance(value, dict):
-                # Store a reference projection
-                references[key] = value
+                # Store a reference/sub-frame projection
+                if '$ref' in value:
+                    references[key] = value
+                elif '$sub' in value:
+                    subs[key] = value
                 flat_projection[key] = True
 
             elif key == '$ref':
-                # Strip the $ref key
+                # Strip any $ref key
+                continue
+
+            elif key == '$sub':
+                # Strip any $sub key
                 continue
 
             else:
@@ -377,12 +501,44 @@ class Frame:
                 flat_projection[key] = value
                 inclusive = False
 
-        # If only references where specified in the projection then return a
-        # full projection based on `_fields`.
+        # If only references and sub-frames where specified in the projection
+        # then return a full projection based on `_fields`.
         if inclusive:
             flat_projection = {fn: True for fn in cls.get_fields()}
 
-        return flat_projection, references
+        return flat_projection, references, subs
+
+    def _sub_frames(self, documents, subs):
+        """Convert embedded documents to sub-frames for one or more documents"""
+
+        # Dereference each reference
+        for path, projection in subs.items():
+
+            # Check there is a $sub in the projection, else skip it
+            if '$sub' not in projection:
+                continue
+
+            # Get the SubFrame class we'll use to wrap the embedded document
+            sub = projection.pop('$sub')
+
+            # Add sub-frames to the documents
+            for document in documents:
+                value = cls._path_to_value(path, document)
+                if not value:
+                    continue
+
+                if isinstance(value, dict):
+                    # Single embedded document
+                    value = sub(**value)
+                else:
+                    # List of embedded documents
+                    value = [sub(**v) for v in values if v]
+
+                child_document = document
+                keys = cls._path_to_keys(path)
+                for key in keys[:-1]:
+                    child_document = child_document[key]
+                child_document[keys[-1]] = value
 
     # Integrity helpers
 
@@ -449,107 +605,6 @@ class Frame:
         """Add a callback for a signal against the class"""
         signal(event).disconnect(func, sender=cls)
 
-    # Serializing
-
-    @classmethod
-    def _json_safe(cls, value):
-        """Return JSON safe value"""
-        # Date
-        if type(value) == date:
-            return str(value)
-
-        # Datetime
-        elif type(value) == datetime:
-            return value.strftime('%Y-%m-%d %H:%M:%S')
-
-        # Object Id
-        elif isinstance(value, ObjectId):
-            return str(value)
-
-        # Frame
-        elif isinstance(value, Frame):
-            return value.to_json_type()
-
-        # Lists
-        elif isinstance(value, (list, tuple)):
-            return [cls._json_safe(v) for v in value]
-
-        # Dictionaries
-        elif isinstance(value, dict):
-            return {k:cls._json_safe(v) for k, v in value.items()}
-
-        return value
-
-    @classmethod
-    def _path_to_keys(cls, path):
-        """Return a list of keys for a given path"""
-
-        # Paths are cached for performance
-        keys = cls._paths.get(path)
-        if keys is None:
-            keys = cls._paths[path] = path.split('.')
-
-        return keys
-
-    @classmethod
-    def _path_to_value(cls, path, parent_dict):
-        """Return a value from a dictionary at the given path"""
-        keys = cls._path_to_keys(path)
-
-        # Traverse to the tip of the path
-        child_dict = parent_dict
-        for key in keys[:-1]:
-            child_dict = child_dict.get(key)
-            if child_dict is None:
-                return
-
-        return child_dict.get(keys[-1])
-
-    @classmethod
-    def _pymongo_safe(cls, value):
-        """Return a PyMongo safe value"""
-
-        # Frame
-        if isinstance(value, Frame):
-            return value._id
-
-        # Lists
-        elif isinstance(value, (list, tuple)):
-            return [cls._pymongo_safe(v) for v in value]
-
-        # Dictionaries
-        elif isinstance(value, dict):
-            return {k: cls._pymongo_safe(v) for k, v in value.items()}
-
-        return value
-
-    @classmethod
-    def _remove_keys(cls, parent_dict, paths):
-        """
-        Remove a list of keys from a dictionary.
-
-        Keys are specified as a series of `.` separated paths for keys in child
-        dictionaries, e.g 'parent_key.child_key.grandchild_key'.
-        """
-
-        for path in paths:
-            keys = cls._path_to_keys(path)
-
-            # Traverse to the tip of the path
-            child_dict = parent_dict
-            for key in keys[:-1]:
-                child_dict = child_dict.get(key)
-
-                if child_dict is None:
-                    break
-
-            if child_dict is None:
-                continue
-
-            # Remove the key
-            if keys[-1] in child_dict:
-                child_dict.pop(keys[-1])
-
     # Misc.
 
     @classmethod
@@ -564,19 +619,15 @@ class Frame:
             return getattr(cls._client, cls._db)
         return cls._client.get_default_database()
 
-    @classmethod
-    def get_fields(cls):
-        """Return the field names that can be set for the class"""
 
-        # We set/use a cache for the output of this method as it's called every
-        # time a fields value is requested using (.) dot notation and therefore
-        # is performance critical.
 
-        # Use the cached if set
-        if hasattr(cls, '_get_fields_cache'):
-            return cls._get_fields_cache
+class SubFrame(_BaseFrame):
+    """
+    Sub-frames allow embedded documents to be wrapped in a class adding support
+    for dot notation access to attributes
+    """
 
-        # Set the cache if not
-        cls._get_fields_cache = set(cls._fields + ['_id'])
+    _fields = {}
 
-        return cls._get_fields_cache
+    # A list of fields that should be ignored by to_dict
+    _private_fields = []
