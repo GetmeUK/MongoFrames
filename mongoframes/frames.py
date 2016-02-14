@@ -3,10 +3,13 @@ from bson.objectid import ObjectId
 from datetime import date, datetime, time, timezone
 
 
+# Support for indexes
+# Support for embedded-documents
+
+
 class Frame:
     """
-    A 'pin-weight' class for working with MongoDB collections. Frames provide
-    support for:
+    Frames provide support for:
 
     - Simple schema declaration (deliberate) through `_fields` attribute.
     - Selection with dereferencing (using projections).
@@ -48,6 +51,8 @@ class Frame:
         return self._id == other._id
 
     def __hash__(self):
+        if not self._id:
+            raise TypeError('Cannot hash a document without an `_id` set.')
         return int(str(self._id), 16)
 
     def __lt__(self, other):
@@ -56,10 +61,14 @@ class Frame:
     @property
     def _pymongo_document(self):
         # Return a version of the document suitable for use with pymongo.
-        return self._pymongo_safe(self._document)
+        from mongoframes.queries import to_refs
+        return to_refs(self._document)
 
-    def to_dict(self):
-        """Return a dictionary for the frame and document"""
+    def to_json_type(self):
+        """
+        Return a dictionary for the document with values converted to JSON safe
+        types.
+        """
         document_dict = self._json_safe(self._document)
         self._remove_keys(document_dict, self._private_fields)
         return document_dict
@@ -215,7 +224,7 @@ class Frame:
         frames = []
         for document in documents:
             if not isinstance(document, Frame):
-                frames.append(cls(document))
+                frames.append(cls(**document))
             else:
                 frames.append(document)
         return frames
@@ -257,7 +266,7 @@ class Frame:
         if references:
             cls._dereference([document], references)
 
-        return cls(document)
+        return cls(**document)
 
     @classmethod
     def many(cls, filter=None, **kwargs):
@@ -277,7 +286,7 @@ class Frame:
         if references:
             cls._dereference(documents, references)
 
-        return [cls(d) for d in documents]
+        return [cls(**d) for d in documents]
 
     @classmethod
     def _dereference(cls, documents, references):
@@ -456,7 +465,7 @@ class Frame:
 
         # Frame
         elif isinstance(value, Frame):
-            return value.to_dict()
+            return value.to_json_type()
 
         # Lists
         elif isinstance(value, (list, tuple)):
@@ -543,14 +552,14 @@ class Frame:
     @classmethod
     def get_collection(cls):
         """Return a reference to the database collection for the class"""
-        return getattr(self.get_db(), cls._collection)
+        return getattr(cls.get_db(), cls._collection)
 
     @classmethod
     def get_db(cls):
         """Return the database for the collection"""
         if cls._db:
-            return getattr(self._client, cls._db)
-        return self._client.get_default_database()
+            return getattr(cls._client, cls._db)
+        return cls._client.get_default_database()
 
     @classmethod
     def get_fields(cls):

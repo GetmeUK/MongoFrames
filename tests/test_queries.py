@@ -1,5 +1,4 @@
-from mongoframes.frames import Frame
-from mongoframes.queries import *
+from mongoframes import *
 
 
 def test_q():

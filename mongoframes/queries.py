@@ -158,7 +158,7 @@ class Nor(Group):
 
 def to_refs(value):
     """Convert all Frame instances within the given value to Ids"""
-    from .frames import Frame
+    from mongoframes.frames import Frame
 
     # Frame
     if isinstance(value, Frame):
