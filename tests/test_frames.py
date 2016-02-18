@@ -1,3 +1,4 @@
+from datetime import datetime
 from pymongo import MongoClient
 import pytest
 
@@ -19,15 +20,12 @@ class Dragon(Frame):
     _private_fields = {'breed'}
 
 
-class Lair(Frame):
-    """
-    A lair in which a dragon resides.
-    """
+class ComplexDragon(Dragon):
 
-    _collection = 'Lair'
-    _fields = {
-        'name',
-        'inventory'
+    _fields = Dragon._fields | {
+        'dob',
+        'lair',
+        'traits'
         }
 
 
@@ -41,6 +39,18 @@ class Inventory(SubFrame):
         'skulls'
         }
     _private_fields = {'gold'}
+
+
+class Lair(Frame):
+    """
+    A lair in which a dragon resides.
+    """
+
+    _collection = 'Lair'
+    _fields = {
+        'name',
+        'inventory'
+        }
 
 
 # Fixtures
@@ -127,19 +137,7 @@ def test_to_json_type(mongo_client):
     JSON safe types. All private fields should be excluded.
     """
 
-    # Create a dragon
-    class ComplexDragon(Dragon):
-
-        _fields = Dragon._fields.union({
-            'lair'
-            })
-
-    # @@ Date
-    # @@ Datetime
-    # @@ ObjectId
-    # @@ List
-    # @@ Dictionary
-
+    # Create some convoluted data to test against (move to a fixture maybe?)
     inventory = Inventory(
         gold=1000,
         skulls=100
@@ -153,22 +151,12 @@ def test_to_json_type(mongo_client):
 
     burt = ComplexDragon(
         name='Burt',
+        dob=datetime(1979, 6, 11),
         breed='Cold-drake',
-        lair=cave
+        lair=cave,
+        traits=['irritable', 'narcissistic']
         )
     burt.insert()
-
-    assert burt.to_json_type() == {
-        '_id': str(burt._id),
-        'name': 'Burt',
-        'lair': {
-            '_id': str(cave._id),
-            'name': 'Cave',
-            'inventory': {
-                'skulls': 100
-                }
-            }
-        }
 
     burt = ComplexDragon.one(
         Q.name == 'Burt',
@@ -180,17 +168,54 @@ def test_to_json_type(mongo_client):
             }
         )
 
-    print(burt.lair.inventory)
+    assert burt.to_json_type() == {
+        '_id': str(burt._id),
+        'name': 'Burt',
+        'dob': '1979-06-11 00:00:00',
+        'traits': ['irritable', 'narcissistic'],
+        'lair': {
+            '_id': str(cave._id),
+            'name': 'Cave',
+            'inventory': {
+                'skulls': 100
+                }
+            }
+        }
+
 
 def test_insert(mongo_client):
     """Should insert a record into the database"""
 
-    # Create a dragon
-    burt = Dragon(
+    # Create some convoluted data to insert
+    inventory = Inventory(
+        gold=1000,
+        skulls=100
+        )
+
+    cave = Lair(
+        name='Cave',
+        inventory=inventory
+        )
+    cave.insert()
+
+    burt = ComplexDragon(
         name='Burt',
-        breed='Cold-drake'
+        dob=datetime(1979, 6, 11),
+        breed='Cold-drake',
+        lair=cave,
+        traits=['irritable', 'narcissistic']
         )
     burt.insert()
+
+    burt = ComplexDragon.one(
+        Q.name == 'Burt',
+        projection={
+            'lair': {
+                '$ref': Lair,
+                'inventory': {'$sub': Inventory}
+                }
+            }
+        )
 
     # Test the document now has an Id
     assert burt._id is not None
@@ -201,13 +226,37 @@ def test_insert(mongo_client):
     assert burt.name == 'Burt'
     assert burt.breed == 'Cold-drake'
 
+def test_update(mongo_client):
+    """Should update a record on the database"""
 
+    burt = Dragon(
+        name='Burt',
+        breed='Cold-drake'
+        )
+    burt.insert()
+
+    burt = Dragon.one(Q._id == burt._id)
+
+    burt.breed='Fire-drake'
+    burt.update()
+
+    burt = Dragon.one(Q._id == burt._id)
+
+    assert burt.name == 'Burt'
+    assert burt.breed == 'Fire-drake'
+
+    burt.update()
+
+
+# @@ Add support for a default projection
+# @@ Selective updates need to be supported
+# @@ Look at scopes here: https://github.com/gamechanger/mongothon (this seems
+# kinda friendly)
 
 # def __getattr__(self, name):
 # def __setattr__(self, name, value):
 
 # Operations
-# def insert(self):
 # def update(self):
 # def delete(self):
 # def insert_many(cls, documents):

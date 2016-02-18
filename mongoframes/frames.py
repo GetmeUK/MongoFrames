@@ -8,22 +8,33 @@ __all__ = [
     ]
 
 
+# Frames provide support for:
+
+# - Simple schema declaration (deliberate) through `_fields` attribute.
+# - Selection with dereferencing (using projections).
+# - Support for insert, insert_many, update, update_many, delete, delete_many.
+# - Signals for insert, update, delete.
+# - Dot syntax access to fields.
+# - Helpers for cascade, nullify and pull.
+
+# Frames are designed for simplicity and performance, it was originally
+# created as a replacement for MongoEngine at Getme. We found we frequently
+# wrote code to circumvent the MongoEngine internals (accessing pymongo
+# directly) to achieve acceptable performance.
+
+
 class _BaseFrame:
     """
     Base class for Frames and SubFrames.
     """
 
-    # The documents defined fields
-    _fields = set()
-
-    # A set of private fields that will be excluded from the output of
-    # `to_json_type`.
-    _private_fields = set()
-
-    # A cache used to
+    # A cache of key lists generated from path strings used for performance (see
+    # `_path_to_keys`.
     _path_to_keys_cache = {}
 
     def __init__(self, **document):
+        # Set the document against the frame (or assign an empty one if one
+        # isn't provided).
         if not document:
             document = {}
         self._document = document
@@ -41,7 +52,6 @@ class _BaseFrame:
     def __setattr__(self, name, value):
         if '_document' in self.__dict__ and name in self._fields:
             self.__dict__['_document'][name] = value
-            return
         super(_BaseFrame, self).__setattr__(name, value)
 
     # Serializing
@@ -154,19 +164,8 @@ class FrameMeta(type):
 
 class Frame(_BaseFrame, metaclass=FrameMeta):
     """
-    Frames provide support for:
-
-    - Simple schema declaration (deliberate) through `_fields` attribute.
-    - Selection with dereferencing (using projections).
-    - Support for insert, insert_many, update, update_many, delete, delete_many.
-    - Signals for insert, update, delete.
-    - Dot syntax access to fields.
-    - Helpers for cascade, nullify and pull.
-
-    Frames are designed for simplicity and performance, it was originally
-    created as a replacement for MongoEngine at Getme. We found we frequently
-    wrote code to circumvent the MongoEngine internals (accessing pymongo
-    directly) to achieve acceptable performance.
+    Frames allow documents to be wrapped in a class adding support for dot
+    notation access to attributes and numerous short-cut/helper methods.
     """
 
     # The MongoDB client used to interface with the database
@@ -180,6 +179,10 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
     # The documents defined fields
     _fields = set()
+
+    # A set of private fields that will be excluded from the output of
+    # `to_json_type`.
+    _private_fields = set()
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -205,7 +208,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         # Send insert signal
         signal('insert').send(self.__class__, documents=[self])
 
-        # Prepare the documents to be inserted
+        # Prepare the document to be inserted
         document = to_refs(self._document)
 
         # Insert the document and update the Id
@@ -214,7 +217,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         # Send inserted signal
         signal('inserted').send(self.__class__, documents=[self])
 
-    def update(self):
+    def update(self,):
         """Update a document"""
         from mongoframes.queries import to_refs
 
@@ -223,7 +226,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         # Send update signal
         signal('update').send(self.__class__, documents=[self])
 
-        # Prepare the documents to be updated
+        # Prepare the document to be updated
         document = to_refs(self._document)
 
         # Update the document
@@ -372,7 +375,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
         # Add sub-frames to the documents (if required)
         if subs:
-            cls._sub_frames(documents, subs)
+            cls._apply_sub_frames(documents, subs)
 
         return cls(**document)
 
@@ -397,9 +400,42 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
         # Add sub-frames to the documents (if required)
         if subs:
-            cls._sub_frames(documents, subs)
+            cls._apply_sub_frames(documents, subs)
 
         return [cls(**d) for d in documents]
+
+    @classmethod
+    def _apply_sub_frames(cls, documents, subs):
+        """Convert embedded documents to sub-frames for one or more documents"""
+
+        # Dereference each reference
+        for path, projection in subs.items():
+
+            # Check there is a $sub in the projection, else skip it
+            if '$sub' not in projection:
+                continue
+
+            # Get the SubFrame class we'll use to wrap the embedded document
+            sub = projection.pop('$sub')
+
+            # Add sub-frames to the documents
+            for document in documents:
+                value = cls._path_to_value(path, document)
+                if not value:
+                    continue
+
+                if isinstance(value, dict):
+                    # Single embedded document
+                    value = sub(**value)
+                else:
+                    # List of embedded documents
+                    value = [sub(**v) for v in values if v]
+
+                child_document = document
+                keys = cls._path_to_keys(path)
+                for key in keys[:-1]:
+                    child_document = child_document[key]
+                child_document[keys[-1]] = value
 
     @classmethod
     def _dereference(cls, documents, references):
@@ -505,39 +541,6 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
         return flat_projection, references, subs
 
-    @classmethod
-    def _sub_frames(cls, documents, subs):
-        """Convert embedded documents to sub-frames for one or more documents"""
-
-        # Dereference each reference
-        for path, projection in subs.items():
-
-            # Check there is a $sub in the projection, else skip it
-            if '$sub' not in projection:
-                continue
-
-            # Get the SubFrame class we'll use to wrap the embedded document
-            sub = projection.pop('$sub')
-
-            # Add sub-frames to the documents
-            for document in documents:
-                value = cls._path_to_value(path, document)
-                if not value:
-                    continue
-
-                if isinstance(value, dict):
-                    # Single embedded document
-                    value = sub(**value)
-                else:
-                    # List of embedded documents
-                    value = [sub(**v) for v in values if v]
-
-                child_document = document
-                keys = cls._path_to_keys(path)
-                for key in keys[:-1]:
-                    child_document = child_document[key]
-                child_document[keys[-1]] = value
-
     # Integrity helpers
 
     @staticmethod
@@ -621,10 +624,12 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 class SubFrame(_BaseFrame):
     """
     Sub-frames allow embedded documents to be wrapped in a class adding support
-    for dot notation access to attributes
+    for dot notation access to attributes.
     """
 
-    _fields = {}
+    # The documents defined fields
+    _fields = set()
 
-    # A list of fields that should be ignored by to_dict
-    _private_fields = []
+    # A set of private fields that will be excluded from the output of
+    # `to_json_type`.
+    _private_fields = set()
