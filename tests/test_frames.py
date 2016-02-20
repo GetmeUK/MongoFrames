@@ -65,6 +65,8 @@ class ComplexDragon(Dragon):
 
 @pytest.fixture(scope='function')
 def mongo_client(request):
+    """Connect to the test database"""
+
     # Connect to mongodb and create a test database
     Frame._client = MongoClient('mongodb://localhost:27017/mongoframes_test')
 
@@ -75,6 +77,29 @@ def mongo_client(request):
     request.addfinalizer(fin)
 
     return Frame._client
+
+@pytest.fixture(scope='function')
+def example_dataset(request):
+    """Create an example set of data that can be used in testing"""
+    inventory = Inventory(
+        gold=1000,
+        skulls=100
+        )
+
+    cave = Lair(
+        name='Cave',
+        inventory=inventory
+        )
+    cave.insert()
+
+    burt = ComplexDragon(
+        name='Burt',
+        dob=datetime(1979, 6, 11),
+        breed='Cold-drake',
+        lair=cave,
+        traits=['irritable', 'narcissistic']
+        )
+    burt.insert()
 
 
 # Tests
@@ -99,7 +124,6 @@ def test_dot_notation():
     @@ Should allow access to read and set document values using do notation.
     """
     assert False
-
 
 def test_equal(mongo_client):
     """Should compare the equality of two Frame instances by Id"""
@@ -146,42 +170,14 @@ def test_sort(mongo_client):
     # Test sorting by Id
     assert sorted([albert, burt, fred]) == [burt, fred, albert]
 
-def test_to_json_type(mongo_client):
+def test_to_json_type(mongo_client, example_dataset):
     """
     Should return a dictionary for the document with all values converted to
     JSON safe types. All private fields should be excluded.
     """
 
-    # Create some convoluted data to test against (move to a fixture maybe?)
-    inventory = Inventory(
-        gold=1000,
-        skulls=100
-        )
-
-    cave = Lair(
-        name='Cave',
-        inventory=inventory
-        )
-    cave.insert()
-
-    burt = ComplexDragon(
-        name='Burt',
-        dob=datetime(1979, 6, 11),
-        breed='Cold-drake',
-        lair=cave,
-        traits=['irritable', 'narcissistic']
-        )
-    burt.insert()
-
-    burt = ComplexDragon.one(
-        Q.name == 'Burt',
-        projection={
-            'lair': {
-                '$ref': Lair,
-                'inventory': {'$sub': Inventory}
-                }
-            }
-        )
+    burt = ComplexDragon.one(Q.name == 'Burt')
+    cave = burt.lair
 
     assert burt.to_json_type() == {
         '_id': str(burt._id),
