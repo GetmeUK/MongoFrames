@@ -94,6 +94,13 @@ def test_frame():
     assert burt.name == 'Burt'
     assert burt.breed == 'Cold-drake'
 
+def test_dot_notation():
+    """
+    @@ Should allow access to read and set document values using do notation.
+    """
+    assert False
+
+
 def test_equal(mongo_client):
     """Should compare the equality of two Frame instances by Id"""
 
@@ -190,9 +197,8 @@ def test_to_json_type(mongo_client):
             }
         }
 
-
 def test_insert(mongo_client):
-    """Should insert a record into the database"""
+    """@@ Should insert a document into the database"""
 
     # Create some convoluted data to insert
     inventory = Inventory(
@@ -225,9 +231,10 @@ def test_insert(mongo_client):
 
     assert burt.name == 'Burt'
     assert burt.breed == 'Cold-drake'
+    assert False
 
 def test_update(mongo_client):
-    """Should update a record on the database"""
+    """@@ Should update a document on the database"""
 
     burt = Dragon(
         name='Burt',
@@ -244,38 +251,90 @@ def test_update(mongo_client):
 
     assert burt.name == 'Burt'
     assert burt.breed == 'Fire-drake'
+    assert False
 
+def test_upsert(mongo_client):
+    """
+    @@ Should update or insert a document on the database depending on whether
+    or not it already exists.
+    """
+    assert False
 
-# @@ Look at scopes here: https://github.com/gamechanger/mongothon (this seems
-# kinda friendly). Maybe chainable is a better term than scopes? maybe not :/
+def test_delete(mongo_client):
+    """@@ Should delete a document from the database"""
+    assert False
 
-# def __getattr__(self, name):
-# def __setattr__(self, name, value):
+def test_insert_many(mongo_client):
+    """@@ Should insert multiple documents records into the database"""
+    assert False
 
-# Operations
-# def update(self):
-# def delete(self):
-# def insert_many(cls, documents):
-# def update_many(cls, documents):
-# def delete_many(cls, documents):
+def test_update_many(mongo_client):
+    """@@ Should update mulitple documents on the database"""
+    assert False
 
-# Querying
-# def count(cls, filter=None, **kwargs):
-# def one(cls, filter, **kwargs):
-# def many(cls, filter=None, **kwargs):
+def test_delete_many(mongo_client):
+    """@@ Should delete mulitple documents from the database"""
+    assert False
 
-# Integrity helpers
-# def timestamp_insert(sender, documents=[]):
-# def timestamp_update(sender, documents=[]):
-# def cascade(cls, field, documents):
-# def nullify(cls, field, documents):
-# def pull(cls, field, documents):
+def test_reload(mongo_client):
+    """@@ Should reload the current document's values from the database"""
+    assert False
 
-# Signals
-# def listen(cls, event, func):
-# def stop_listening(cls, event, func):
+def test_by_id(mongo_client):
+    """@@ Should return a document by Id from the database"""
+    assert False
 
-# Misc.
-# def get_collection(cls):
-# def get_db(cls):
-# def get_fields(cls):
+def test_by_id(mongo_client):
+    """@@ Should return a document by it's Id from the database"""
+    assert False
+
+def test_by_count(mongo_client):
+    """@@ Should return a count for documents matching the given query"""
+    assert False
+
+def test_one(mongo_client):
+    """@@ Should return a the first document that matches the given query"""
+    assert False
+
+def test_many(mongo_client):
+    """@@ Should return all documents that match the given query"""
+    assert False
+
+def test_timestamp_insert(mongo_client):
+    """
+    @@ Should assign a timestamp to the `created` and `modified` field for a
+    document.
+    """
+    assert False
+
+def test_timestamp_update(mongo_client):
+    """@@ Should assign a timestamp to the `modified` field for a document"""
+    assert False
+
+def test_cascade(mongo_client):
+    """@@ Should apply a cascading delete"""
+    assert False
+
+def test_nullify(mongo_client):
+    """@@ Should nullify a reference field"""
+    assert False
+
+def test_pull(mongo_client):
+    """@@ Should pull references from a list field"""
+    assert False
+
+def test_listen(mongo_client):
+    """@@ Should add a callback for a signal against the class"""
+    assert False
+
+def test_stop_listening(mongo_client):
+    """@@ Should remove a callback for a signal against the class"""
+    assert False
+
+def test_get_collection(mongo_client):
+    """@@ Return a reference to the database collection for the class"""
+    assert False
+
+def test_get_db(mongo_client):
+    """@@ Return the database for the collection"""
+    assert False

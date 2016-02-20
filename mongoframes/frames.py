@@ -615,14 +615,14 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
     def cascade(cls, field, documents):
         """Apply a cascading delete (does not emit signals)"""
         cls.get_collection().delete_many(
-            {field: {'$in': [d._id for d in documents]}}
+            {field: {'$in': [d['_id'] for d in documents]}}
             )
 
     @classmethod
     def nullify(cls, field, documents):
         """Nullify a reference field (does not emit signals)"""
         cls.get_collection().update_many(
-            {field: {'$in': [d._id for d in documents]}},
+            {field: {'$in': [d['_id'] for d in documents]}},
             {'$set': {field: None}}
             )
 
@@ -630,7 +630,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
     def pull(cls, field, documents):
         """Pull references from a list field (does not emit signals)"""
         cls.get_collection().update_many(
-            {field: {'$in': [d._id for d in documents]}},
+            {field: {'$in': [d['_id'] for d in documents]}},
             {'$pull:': {field: {'$in': ids}}}
             )
 
@@ -643,7 +643,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
     @classmethod
     def stop_listening(cls, event, func):
-        """Add a callback for a signal against the class"""
+        """Remove a callback for a signal against the class"""
         signal(event).disconnect(func, sender=cls)
 
     # Misc.
