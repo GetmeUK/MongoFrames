@@ -50,6 +50,11 @@ def test_all():
     """Should generate a contains all values condition"""
     assert All(Q.foo, [1, 2, 3]).to_dict() == {'foo': {'$all': [1, 2, 3]}}
 
+def test_elem_match():
+    """Should generate an element match condition"""
+    condition = ElemMatch(Q.foo, [Q > 1, Q < 5])
+    assert condition.to_dict() == {'foo': {'$elemMatch': {'$gt': 1, '$lt': 5}}}
+
 def test_exists():
     """Should generate an exists test condition"""
     assert Exists(Q.foo, True).to_dict() == {'foo': {'$exists': True}}

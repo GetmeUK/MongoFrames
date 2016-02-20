@@ -8,21 +8,6 @@ __all__ = [
     ]
 
 
-# Frames provide support for:
-
-# - Simple schema declaration (deliberate) through `_fields` attribute.
-# - Selection with dereferencing (using projections).
-# - Support for insert, insert_many, update, update_many, delete, delete_many.
-# - Signals for insert, update, delete.
-# - Dot syntax access to fields.
-# - Helpers for cascade, nullify and pull.
-
-# Frames are designed for simplicity and performance, it was originally
-# created as a replacement for MongoEngine at Getme. We found we frequently
-# wrote code to circumvent the MongoEngine internals (accessing pymongo
-# directly) to achieve acceptable performance.
-
-
 class _BaseFrame:
     """
     Base class for Frames and SubFrames.
@@ -184,6 +169,9 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
     # `to_json_type`.
     _private_fields = set()
 
+    # Default projection
+    _default_projection = None
+
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
@@ -200,7 +188,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
     # Operations
 
     def insert(self):
-        """Insert a document"""
+        """Insert this document"""
         from mongoframes.queries import to_refs
 
         assert '_id' not in self._document, "Can't insert documents with `_id`"
@@ -217,8 +205,11 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         # Send inserted signal
         signal('inserted').send(self.__class__, documents=[self])
 
-    def update(self,):
-        """Update a document"""
+    def update(self, *fields):
+        """
+        Update this document. Optionally a specific list of fields to update can
+        be specified.
+        """
         from mongoframes.queries import to_refs
 
         assert '_id' in self._document, "Can't update documents without `_id`"
@@ -226,14 +217,33 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         # Send update signal
         signal('update').send(self.__class__, documents=[self])
 
+        # Check for selective updates
+        if len(fields) > 0:
+            document = {}
+            for field in fields:
+                document[field] = self._path_to_value(field, self._document)
+        else:
+            document = self._document
+
         # Prepare the document to be updated
-        document = to_refs(self._document)
+        document = to_refs(document)
 
         # Update the document
         self.get_collection().update_one({'_id': self._id}, {'$set': document})
 
         # Send updated signal
         signal('updated').send(self.__class__, documents=[self])
+
+    def upsert(self, *fields):
+        """
+        Update or Insert this document depending on whether it exists or not.
+        The presense of an `_id` value in the document is used to determine if
+        the document exists.
+        """
+        if self._id:
+            self.update(*fields)
+        else:
+            self.insert()
 
     def delete(self):
         """Delete this document"""
@@ -277,8 +287,11 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         signal('inserted').send(cls, documents=frames)
 
     @classmethod
-    def update_many(cls, documents):
-        """Update multiple documents"""
+    def update_many(cls, documents, *fields):
+        """
+        Update multiple documents. Optionally a specific list of fields to
+        update can be specified.
+        """
         from mongoframes.queries import to_refs
 
         # Ensure all documents have been converted to frames
@@ -292,7 +305,20 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         signal('update').send(cls, documents=frames)
 
         # Prepare the documents to be updated
-        documents = [to_refs(f._document) for f in frames]
+
+        # Check for selective updates
+        if len(fields) > 0:
+            documents = []
+            for frame in frames:
+                document = {}
+                for field in fields:
+                    document[field] = self._path_to_value(
+                        field,
+                        frame._document
+                        )
+                documents.append(to_refs(document))
+        else:
+            documents = [to_refs(f._document) for f in frames]
 
         # Update the documents
         for document in documents:
@@ -340,6 +366,16 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
     # Querying
 
+    def reload(self, projection=None):
+        """Reload the document with the given projection"""
+        frame = self.one({'_id': self._id}, projection=projection)
+        self._document = frame._document
+
+    @classmethod
+    def by_id(cls, id, **kwargs):
+        """Load a document by Id"""
+        return cls.one({'_id': id}, **kwargs)
+
     @classmethod
     def count(cls, filter=None, **kwargs):
         """Return a count of documents matching the filter"""
@@ -357,7 +393,9 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
         # Flatten the projection
         kwargs['projection'], references, subs = \
-                cls._flatten_projection(kwargs.get('projection'))
+                cls._flatten_projection(
+                    kwargs.get('projection', cls._default_projection)
+                    )
 
         # Find the document
         if isinstance(filter, (Condition, Group)):
@@ -386,7 +424,9 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
         # Flatten the projection
         kwargs['projection'], references, subs = \
-                cls._flatten_projection(kwargs.get('projection'))
+                cls._flatten_projection(
+                    kwargs.get('projection', cls._default_projection)
+                    )
 
         # Find the documents
         if isinstance(filter, (Condition, Group)):

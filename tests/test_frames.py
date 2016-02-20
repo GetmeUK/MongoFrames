@@ -20,15 +20,6 @@ class Dragon(Frame):
     _private_fields = {'breed'}
 
 
-class ComplexDragon(Dragon):
-
-    _fields = Dragon._fields | {
-        'dob',
-        'lair',
-        'traits'
-        }
-
-
 class Inventory(SubFrame):
     """
     An inventory of items kept within a lair.
@@ -51,6 +42,23 @@ class Lair(Frame):
         'name',
         'inventory'
         }
+
+
+class ComplexDragon(Dragon):
+
+    _fields = Dragon._fields | {
+        'dob',
+        'lair',
+        'traits'
+        }
+
+    _default_projection = {
+        'lair': {
+            '$ref': Lair,
+            'inventory': {'$sub': Inventory}
+            }
+        }
+
 
 
 # Fixtures
@@ -207,21 +215,13 @@ def test_insert(mongo_client):
         )
     burt.insert()
 
-    burt = ComplexDragon.one(
-        Q.name == 'Burt',
-        projection={
-            'lair': {
-                '$ref': Lair,
-                'inventory': {'$sub': Inventory}
-                }
-            }
-        )
+    burt = ComplexDragon.one(Q.name == 'Burt')
 
     # Test the document now has an Id
     assert burt._id is not None
 
     # Get the document from the database and check it's values
-    burt = Dragon.one(Q._id == burt._id)
+    burt.reload()
 
     assert burt.name == 'Burt'
     assert burt.breed == 'Cold-drake'
@@ -237,21 +237,17 @@ def test_update(mongo_client):
 
     burt = Dragon.one(Q._id == burt._id)
 
-    burt.breed='Fire-drake'
-    burt.update()
+    burt.breed = 'Fire-drake'
+    burt.update('breed')
 
-    burt = Dragon.one(Q._id == burt._id)
+    burt.reload()
 
     assert burt.name == 'Burt'
     assert burt.breed == 'Fire-drake'
 
-    burt.update()
 
-
-# @@ Add support for a default projection
-# @@ Selective updates need to be supported
 # @@ Look at scopes here: https://github.com/gamechanger/mongothon (this seems
-# kinda friendly)
+# kinda friendly). Maybe chainable is a better term than scopes? maybe not :/
 
 # def __getattr__(self, name):
 # def __setattr__(self, name, value):

@@ -9,6 +9,7 @@ __all__ = [
 
     # Operators
     'All',
+    'ElemMatch',
     'Exists',
     'In',
     'Not',
@@ -41,6 +42,8 @@ class Condition:
     def to_dict(self):
         if self.operator == '$eq':
             return {self.q: self.value}
+        if self.q is None:
+            return {self.operator: self.value}
         return {self.q: {self.operator: self.value}}
 
 
@@ -54,6 +57,24 @@ class QMeta(type):
 
     def __getitem__(self, name):
         return Q(name)
+
+    def __eq__(self, other):
+        return Condition(None, other, '$eq')
+
+    def __ge__(self, other):
+        return Condition(None, other, '$gte')
+
+    def __gt__(self, other):
+        return Condition(None, other, '$gt')
+
+    def __le__(self, other):
+        return Condition(None, other, '$lte')
+
+    def __lt__(self, other):
+        return Condition(None, other, '$lt')
+
+    def __ne__(self, other):
+        return Condition(None, other, '$ne')
 
 
 class Q(metaclass=QMeta):
@@ -95,6 +116,16 @@ class Q(metaclass=QMeta):
 
 def All(q, value):
     return Condition(q._path, to_refs(value), '$all')
+
+def ElemMatch(q, value):
+    # Support for a list of conditions being specified for an element match
+    if isinstance(value, list):
+        new_value = {}
+        for condition in value:
+            deep_merge(condition.to_dict(), new_value)
+        value = new_value
+
+    return Condition(q._path, value, '$elemMatch')
 
 def Exists(q, value):
     return Condition(q._path, value, '$exists')
@@ -155,6 +186,25 @@ class Nor(Group):
 
 
 # Utils
+
+def deep_merge(source, dest):
+    """
+    Deep merges source dict into dest dict.
+
+    This code was taken directly from the mongothon project:
+    https://github.com/gamechanger/mongothon/tree/master/mongothon
+    """
+    for key, value in source.items():
+        if key in dest:
+            if isinstance(value, dict) and isinstance(dest[key], dict):
+                deep_merge(value, dest[key])
+                continue
+            elif isinstance(value, list) and isinstance(dest[key], list):
+                for item in value:
+                    if item not in dest[key]:
+                        dest[key].append(item)
+                continue
+        dest[key] = value
 
 def to_refs(value):
     """Convert all Frame instances within the given value to Ids"""
