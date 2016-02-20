@@ -121,9 +121,34 @@ def test_frame():
 
 def test_dot_notation():
     """
-    @@ Should allow access to read and set document values using do notation.
+    Should allow access to read and set document values using do notation.
     """
-    assert False
+
+    # Simple set/get
+    burt = Dragon(
+        name='Burt',
+        breed='Cold-drake'
+        )
+
+    assert burt.name == 'Burt'
+    burt.name = 'Fred'
+    assert burt.name == 'Fred'
+
+    # SubFrame (embedded document get/set)
+    inventory = Inventory(
+        gold=1000,
+        skulls=100
+        )
+
+    cave = Lair(
+        name='Cave',
+        inventory=inventory
+        )
+
+    assert cave.inventory.gold == 1000
+    cave.inventory.gold += 100
+    assert cave.inventory.gold == 1100
+
 
 def test_equal(mongo_client):
     """Should compare the equality of two Frame instances by Id"""
