@@ -624,11 +624,11 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
             document.modified = datetime.now(timezone.utc)
 
     @classmethod
-    def cascade(cls, field, documents):
+    def cascade(cls, ref_cls, field, documents):
         """Apply a cascading delete (does not emit signals)"""
-        cls.get_collection().delete_many(
-            {field: {'$in': [d['_id'] for d in documents]}}
-            )
+        from mongoframes.queries import to_refs
+        ids = [to_refs(d[field]) for d in documents if d.get(field)]
+        ref_cls.get_collection().delete_many({'_id': {'$in': ids}})
 
     @classmethod
     def nullify(cls, field, documents):

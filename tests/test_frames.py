@@ -655,9 +655,21 @@ def test_timestamp_update(mongo_client):
     dragon.reload()
     assert (dragon.modified - now) < timedelta(seconds=1)
 
-def test_cascade(mongo_client):
-    """@@ Should apply a cascading delete"""
-    assert False
+def test_cascade(mongo_client, example_dataset_many):
+    """Should apply a cascading delete"""
+
+    # Listen for delete events against complex dragons and delete any associated
+    # lair at the same time.
+    def on_delete(sender, documents):
+        ComplexDragon.cascade(Lair, 'lair', documents)
+
+    ComplexDragon.listen('deleted', on_delete)
+
+    # Delete a dragon and make sure the associated lair is also deleted
+    burt = ComplexDragon.one(Q.name == 'Burt')
+    burt.delete()
+    lair = Lair.by_id(burt.lair._id)
+    assert lair == None
 
 def test_nullify(mongo_client):
     """@@ Should nullify a reference field"""
