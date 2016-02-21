@@ -410,8 +410,6 @@ def test_insert_many(mongo_client):
 def test_update_many(mongo_client, example_dataset_many):
     """Should update mulitple documents on the database"""
 
-    # Check each dragon has been updated
-
     # Select all the dragons
     dragons = ComplexDragon.many()
 
@@ -464,9 +462,17 @@ def test_update_many(mongo_client, example_dataset_many):
     assert dragons[1].lair.inventory.skulls == 200
     assert dragons[2].lair.inventory.skulls == 300
 
-def test_delete_many(mongo_client):
-    """@@ Should delete mulitple documents from the database"""
-    assert False
+def test_delete_many(mongo_client, example_dataset_many):
+    """Should delete mulitple documents from the database"""
+
+    # Select all the dragons
+    dragons = ComplexDragon.many()
+
+    # Delete all of them :(
+    ComplexDragon.delete_many(dragons)
+
+    # Check there are no remaining dragons
+    assert ComplexDragon.count() == 0
 
 def test_reload(mongo_client):
     """@@ Should reload the current document's values from the database"""
