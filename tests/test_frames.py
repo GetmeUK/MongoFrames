@@ -149,7 +149,6 @@ def test_dot_notation():
     cave.inventory.gold += 100
     assert cave.inventory.gold == 1100
 
-
 def test_equal(mongo_client):
     """Should compare the equality of two Frame instances by Id"""
 
@@ -170,7 +169,7 @@ def test_equal(mongo_client):
     assert burt != fred
     assert burt == burt
 
-def test_sort(mongo_client):
+def test_python_sort(mongo_client):
     """Should sort a list of Frame instances by their Ids"""
 
     # Create some dragons
@@ -219,7 +218,7 @@ def test_to_json_type(mongo_client, example_dataset):
         }
 
 def test_insert(mongo_client):
-    """@@ Should insert a document into the database"""
+    """Should insert a document into the database"""
 
     # Create some convoluted data to insert
     inventory = Inventory(
@@ -242,8 +241,6 @@ def test_insert(mongo_client):
         )
     burt.insert()
 
-    burt = ComplexDragon.one(Q.name == 'Burt')
-
     # Test the document now has an Id
     assert burt._id is not None
 
@@ -251,28 +248,41 @@ def test_insert(mongo_client):
     burt.reload()
 
     assert burt.name == 'Burt'
+    assert burt.dob == datetime(1979, 6, 11)
     assert burt.breed == 'Cold-drake'
-    assert False
+    assert burt.traits == ['irritable', 'narcissistic']
+    assert burt.lair.name == 'Cave'
+    assert burt.lair.inventory.gold == 1000
+    assert burt.lair.inventory.skulls == 100
 
-def test_update(mongo_client):
-    """@@ Should update a document on the database"""
+def test_update(mongo_client, example_dataset):
+    """Should update a document on the database"""
 
-    burt = Dragon(
-        name='Burt',
-        breed='Cold-drake'
-        )
-    burt.insert()
+    # Update all values
+    burt = ComplexDragon.one(Q.name == 'Burt')
 
-    burt = Dragon.one(Q._id == burt._id)
-
+    burt.name = 'Jess'
     burt.breed = 'Fire-drake'
-    burt.update('breed')
+    burt.traits = ['gentle', 'kind']
+    burt.update()
 
     burt.reload()
 
-    assert burt.name == 'Burt'
+    assert burt.name == 'Jess'
     assert burt.breed == 'Fire-drake'
-    assert False
+    assert burt.traits == ['gentle', 'kind']
+
+    # Selective update
+    burt.lair.name = 'Castle'
+    burt.lair.inventory.gold += 100
+    burt.lair.inventory.skulls = 0
+    burt.lair.update('name', 'inventory.skulls')
+
+    burt.reload()
+
+    assert burt.lair.name == 'Castle'
+    assert burt.lair.inventory.gold == 1000
+    assert burt.lair.inventory.skulls == 0
 
 def test_upsert(mongo_client):
     """

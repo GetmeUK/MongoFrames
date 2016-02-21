@@ -1,5 +1,6 @@
 from blinker import signal
 from bson.objectid import ObjectId
+from copy import deepcopy
 from datetime import date, datetime, time, timezone
 
 __all__ = [
@@ -38,6 +39,15 @@ class _BaseFrame:
         if '_document' in self.__dict__ and name in self._fields:
             self.__dict__['_document'][name] = value
         super(_BaseFrame, self).__setattr__(name, value)
+
+    def __getitem__(self, name):
+        return self.__dict__['_document'][name]
+
+    def __contains__(self, name):
+        return name in self.__dict__['_document']
+
+    def get(self, name, default=None):
+        return self.__dict__['_document'].get(name, default)
 
     # Serializing
 
@@ -366,9 +376,9 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
     # Querying
 
-    def reload(self, projection=None):
+    def reload(self, **kwargs):
         """Reload the document with the given projection"""
-        frame = self.one({'_id': self._id}, projection=projection)
+        frame = self.one({'_id': self._id}, **kwargs)
         self._document = frame._document
 
     @classmethod
@@ -413,7 +423,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
         # Add sub-frames to the documents (if required)
         if subs:
-            cls._apply_sub_frames(documents, subs)
+            cls._apply_sub_frames([document], subs)
 
         return cls(**document)
 
@@ -552,7 +562,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         references = {}
         subs = {}
         inclusive = True
-        for key, value in projection.items():
+        for key, value in deepcopy(projection).items():
             if isinstance(value, dict):
                 # Store a reference/sub-frame projection
                 if '$ref' in value:
