@@ -286,10 +286,22 @@ def test_update(mongo_client, example_dataset):
 
 def test_upsert(mongo_client):
     """
-    @@ Should update or insert a document on the database depending on whether
+    Should update or insert a document on the database depending on whether
     or not it already exists.
     """
-    assert False
+
+    burt = Dragon(
+        name='Burt',
+        breed='Cold-drake'
+        )
+    burt.upsert()
+
+    id = burt._id
+
+    burt.upsert()
+    burt.reload()
+
+    assert burt._id == id
 
 def test_delete(mongo_client):
     """@@ Should delete a document from the database"""
