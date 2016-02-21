@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from pymongo import MongoClient
 import pytest
 from time import sleep
+from unittest.mock import Mock
 
 from mongoframes import *
 
@@ -715,11 +716,56 @@ def test_pull(mongo_client, example_dataset_many):
 
 def test_listen(mongo_client):
     """Should add a callback for a signal against the class"""
-    assert False
+
+    # Create a mocked functions for every event that can be triggered for a
+    # frame.
+    mock = Mock()
+
+    def on_insert(sender, documents):
+        mock.insert(sender, documents)
+
+    def on_inserted(sender, documents):
+        mock.inserted(sender, documents)
+
+    def on_update(sender, documents):
+        mock.update(sender, documents)
+
+    def on_updated(sender, documents):
+        mock.updated(sender, documents)
+
+    def on_delete(sender, documents):
+        mock.delete(sender, documents)
+
+    def on_deleted(sender, documents):
+        mock.deleted(sender, documents)
+
+    # Listen for all events triggered by frames
+    Dragon.listen('insert', on_insert)
+    Dragon.listen('inserted', on_inserted)
+    Dragon.listen('update', on_update)
+    Dragon.listen('updated', on_updated)
+    Dragon.listen('delete', on_delete)
+    Dragon.listen('deleted', on_deleted)
+
+    # Trigger all the events
+    burt = Dragon(name='Burt', breed='Cold-drake')
+    burt.insert()
+    burt.breed = 'Fire-drake'
+    burt.update()
+    burt.delete()
+
+    # Check each function was called
+    assert mock.insert.called
+    assert mock.inserted.called
+    assert mock.update.called
+    assert mock.updated.called
+    assert mock.delete.called
+    assert mock.deleted.called
 
 def test_stop_listening(mongo_client):
-    """@@ Should remove a callback for a signal against the class"""
-    assert False
+    """Should remove a callback for a signal against the class"""
+
+
 
 def test_get_collection(mongo_client):
     """Return a reference to the database collection for the class"""
