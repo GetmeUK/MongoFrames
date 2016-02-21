@@ -39,7 +39,8 @@ class _BaseFrame:
     def __setattr__(self, name, value):
         if '_document' in self.__dict__ and name in self._fields:
             self.__dict__['_document'][name] = value
-        super(_BaseFrame, self).__setattr__(name, value)
+        else:
+            super(_BaseFrame, self).__setattr__(name, value)
 
     def __getitem__(self, name):
         return self.__dict__['_document'][name]

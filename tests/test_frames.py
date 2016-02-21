@@ -474,16 +474,32 @@ def test_delete_many(mongo_client, example_dataset_many):
     # Check there are no remaining dragons
     assert ComplexDragon.count() == 0
 
-def test_reload(mongo_client):
-    """@@ Should reload the current document's values from the database"""
-    assert False
+def test_reload(mongo_client, example_dataset_one):
+    """Should reload the current document's values from the database"""
+
+    # Select Burt from the database
+    burt = ComplexDragon.one({'name': 'Burt'})
+
+    # Change some values and reload
+    burt.name = 'Fred'
+    burt.lair.inventory = Inventory(gold=500, skulls=50)
+    burt.reload()
+
+    # Check Burt is himself again
+    assert burt.name == 'Burt'
+    assert burt.lair.inventory.gold == 1000
+    assert burt.lair.inventory.skulls == 100
+
+    # Reload with a different projection
+    burt.reload(projection={'name': True})
+
+    # Check Burt has values for the projection specified
+    assert burt.name == 'Burt'
+    assert burt.breed == None
+    assert burt.lair == None
 
 def test_by_id(mongo_client):
     """@@ Should return a document by Id from the database"""
-    assert False
-
-def test_by_id(mongo_client):
-    """@@ Should return a document by it's Id from the database"""
     assert False
 
 def test_by_count(mongo_client):
