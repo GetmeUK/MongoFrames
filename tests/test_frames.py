@@ -290,22 +290,28 @@ def test_upsert(mongo_client):
     or not it already exists.
     """
 
+    # Insert
     burt = Dragon(
         name='Burt',
         breed='Cold-drake'
         )
     burt.upsert()
-
     id = burt._id
+    burt.reload()
 
+    # Update
     burt.upsert()
     burt.reload()
 
     assert burt._id == id
 
-def test_delete(mongo_client):
-    """@@ Should delete a document from the database"""
-    assert False
+def test_delete(mongo_client, example_dataset):
+    """Should delete a document from the database"""
+    burt = ComplexDragon.one(Q.name == 'Burt')
+    burt.delete()
+    burt = burt.by_id(burt._id)
+
+    assert burt is None
 
 def test_insert_many(mongo_client):
     """@@ Should insert multiple documents records into the database"""
