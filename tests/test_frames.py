@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pymongo import MongoClient
 import pytest
 
@@ -59,6 +59,15 @@ class ComplexDragon(Dragon):
             }
         }
 
+
+class MonitoredDragon(Dragon):
+
+    _collection = 'MonitoredDragon'
+
+    _fields = Dragon._fields | {
+        'created',
+        'modified'
+        }
 
 
 # Fixtures
@@ -347,8 +356,8 @@ def test_update(mongo_client, example_dataset_one):
 
 def test_upsert(mongo_client):
     """
-    Should update or insert a document on the database depending on whether
-    or not it already exists.
+    Should update or insert a document on the database depending on whether or
+    not it already exists.
     """
 
     # Insert
@@ -585,10 +594,30 @@ def test_many(mongo_client, example_dataset_many):
 
 def test_timestamp_insert(mongo_client):
     """
-    @@ Should assign a timestamp to the `created` and `modified` field for a
+    Should assign a timestamp to the `created` and `modified` field for a
     document.
     """
-    assert False
+
+    # Assign a the timestamp helper to the insert event
+    MonitoredDragon.listen('insert', MonitoredDragon.timestamp_insert)
+
+    # Insert a monitored dragon in the database
+    dragon = MonitoredDragon(name='Burt', breed='Cold-drake')
+    now = datetime.now()
+    now_tz = datetime.now(timezone.utc)
+    dragon.insert()
+
+    # Check the dragon has a created/modified timestamp set
+    assert (dragon.created - now_tz) < timedelta(seconds=1)
+    assert (dragon.modified - now_tz) < timedelta(seconds=1)
+
+    # When the timestamps are reloaded whether they have associated timezones
+    # will depend on the mongodb client settings, in the tests the client is not
+    # timezone aware and so tests after the reload are against a naive datetime.
+    dragon.reload()
+
+    assert (dragon.created - now) < timedelta(seconds=1)
+    assert (dragon.modified - now) < timedelta(seconds=1)
 
 def test_timestamp_update(mongo_client):
     """@@ Should assign a timestamp to the `modified` field for a document"""
