@@ -532,7 +532,7 @@ def test_one(mongo_client, example_dataset_many):
     assert burt.name == 'Burt'
 
     # Sort the results so we select the last matching dragon
-    albert = ComplexDragon.one(sort=[('_id', INDEX_DESCENDING)])
+    albert = ComplexDragon.one(sort=[('_id', DESC)])
     assert albert.name == 'Albert'
 
     # Select the first dragon who's a fire-drake
@@ -544,9 +544,44 @@ def test_one(mongo_client, example_dataset_many):
     assert burt.name == 'Burt'
     assert burt.breed == None
 
-def test_many(mongo_client):
-    """@@ Should return all documents that match the given query"""
-    assert False
+def test_many(mongo_client, example_dataset_many):
+    """Should return all documents that match the given query"""
+
+    # Select all dragons
+    dragons = ComplexDragon.many()
+
+    assert len(dragons) == 3
+    assert dragons[0].name == 'Burt'
+    assert dragons[1].name == 'Fred'
+    assert dragons[2].name == 'Albert'
+
+    # Select all dragons ordered by date of birth (youngest to oldest)
+    dragons = ComplexDragon.many(sort=[('dob', DESC)])
+
+    assert dragons[0].name == 'Albert'
+    assert dragons[1].name == 'Fred'
+    assert dragons[2].name == 'Burt'
+
+    # Select only dragons born after 1980 ordered by date of birth (youngest to
+    # oldest).
+    dragons = ComplexDragon.many(
+        Q.dob > datetime(1980, 1, 1),
+        sort=[('dob', DESC)]
+        )
+
+    assert len(dragons) == 2
+    assert dragons[0].name == 'Albert'
+    assert dragons[1].name == 'Fred'
+
+    # Select all dragons with a different projection
+    dragons = ComplexDragon.many(projection={'name': True})
+
+    assert dragons[0].name == 'Burt'
+    assert dragons[0].breed == None
+    assert dragons[1].name == 'Fred'
+    assert dragons[1].breed == None
+    assert dragons[2].name == 'Albert'
+    assert dragons[2].breed == None
 
 def test_timestamp_insert(mongo_client):
     """
