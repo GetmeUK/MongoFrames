@@ -765,7 +765,23 @@ def test_listen(mongo_client):
 def test_stop_listening(mongo_client):
     """Should remove a callback for a signal against the class"""
 
+    # Add an listener for the insert event
+    mock = Mock()
 
+    def on_insert(sender, documents):
+        mock.insert(sender, documents)
+
+    Dragon.listen('on_insert', on_insert)
+
+    # Remove the listener for the insert event
+    Dragon.stop_listening('on_insert', on_insert)
+
+    # Insert a dragon into the database and check that the insert event handler
+    # isn't called.
+    burt = Dragon(name='Burt', breed='Cold-drake')
+    burt.insert()
+
+    assert mock.insert.called == False
 
 def test_get_collection(mongo_client):
     """Return a reference to the database collection for the class"""
