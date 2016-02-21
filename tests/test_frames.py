@@ -314,8 +314,37 @@ def test_delete(mongo_client, example_dataset):
     assert burt is None
 
 def test_insert_many(mongo_client):
-    """@@ Should insert multiple documents records into the database"""
-    assert False
+    """Should insert multiple documents records into the database"""
+
+    # Create some convoluted data to insert
+    burt = Dragon(
+        name='Burt',
+        breed='Cold-drake'
+        )
+
+    fred = Dragon(
+        name='Fred',
+        breed='Fire-drake'
+        )
+
+    albert = Dragon(
+        name='Albert',
+        breed='Stone dragon'
+        )
+
+    burt.insert_many([burt, fred, albert])
+
+    # Check 3 dragons have been created
+    assert Dragon.count() == 3
+
+    # Check the details for each dragon
+    dragons = Dragon.many()
+    assert dragons[0].name == 'Burt'
+    assert dragons[0].breed == 'Cold-drake'
+    assert dragons[1].name == 'Fred'
+    assert dragons[1].breed == 'Fire-drake'
+    assert dragons[2].name == 'Albert'
+    assert dragons[2].breed == 'Stone dragon'
 
 def test_update_many(mongo_client):
     """@@ Should update mulitple documents on the database"""
