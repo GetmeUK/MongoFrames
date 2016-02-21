@@ -18,12 +18,13 @@ class _BaseFrame:
     # `_path_to_keys`.
     _path_to_keys_cache = {}
 
-    def __init__(self, **document):
+    def __init__(self, *args, **kwargs):
         # Set the document against the frame (or assign an empty one if one
         # isn't provided).
-        if not document:
-            document = {}
-        self._document = document
+        if args:
+            self._document = args[0]
+        else:
+            self._document = kwargs
 
     # Get/Set attribute methods are overwritten to support for setting values
     # against the `_document`. Attribute names are converted to camelcase.
@@ -320,9 +321,9 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         if len(fields) > 0:
             documents = []
             for frame in frames:
-                document = {}
+                document = {'_id': frame._id}
                 for field in fields:
-                    document[field] = self._path_to_value(
+                    document[field] = cls._path_to_value(
                         field,
                         frame._document
                         )
@@ -369,7 +370,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         frames = []
         for document in documents:
             if not isinstance(document, Frame):
-                frames.append(cls(**document))
+                frames.append(cls(document))
             else:
                 frames.append(document)
         return frames
@@ -425,7 +426,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         if subs:
             cls._apply_sub_frames([document], subs)
 
-        return cls(**document)
+        return cls(document)
 
     @classmethod
     def many(cls, filter=None, **kwargs):
@@ -452,7 +453,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         if subs:
             cls._apply_sub_frames(documents, subs)
 
-        return [cls(**d) for d in documents]
+        return [cls(d) for d in documents]
 
     @classmethod
     def _apply_sub_frames(cls, documents, subs):

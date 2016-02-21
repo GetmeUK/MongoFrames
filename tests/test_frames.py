@@ -79,7 +79,7 @@ def mongo_client(request):
     return Frame._client
 
 @pytest.fixture(scope='function')
-def example_dataset(request):
+def example_dataset_one(request):
     """Create an example set of data that can be used in testing"""
     inventory = Inventory(
         gold=1000,
@@ -100,6 +100,67 @@ def example_dataset(request):
         traits=['irritable', 'narcissistic']
         )
     burt.insert()
+
+@pytest.fixture(scope='function')
+def example_dataset_many(request):
+    """Create an example set of data that can be used in testing"""
+
+    # Burt
+    cave = Lair(
+        name='Cave',
+        inventory=Inventory(
+            gold=1000,
+            skulls=100
+            )
+        )
+    cave.insert()
+
+    burt = ComplexDragon(
+        name='Burt',
+        dob=datetime(1979, 6, 11),
+        breed='Cold-drake',
+        lair=cave,
+        traits=['irritable', 'narcissistic']
+        )
+    burt.insert()
+
+    # Fred
+    castle = Lair(
+        name='Castle',
+        inventory=Inventory(
+            gold=2000,
+            skulls=200
+            )
+        )
+    castle.insert()
+
+    fred = ComplexDragon(
+        name='Fred',
+        dob=datetime(1980, 7, 12),
+        breed='Fire-drake',
+        lair=castle,
+        traits=['impulsive', 'loyal']
+        )
+    fred.insert()
+
+    # Fred
+    mountain = Lair(
+        name='Mountain',
+        inventory=Inventory(
+            gold=3000,
+            skulls=300
+            )
+        )
+    mountain.insert()
+
+    albert = ComplexDragon(
+        name='Albert',
+        dob=datetime(1981, 8, 13),
+        breed='Stone dragon',
+        lair=mountain,
+        traits=['reclusive', 'cunning']
+        )
+    albert.insert()
 
 
 # Tests
@@ -194,7 +255,7 @@ def test_python_sort(mongo_client):
     # Test sorting by Id
     assert sorted([albert, burt, fred]) == [burt, fred, albert]
 
-def test_to_json_type(mongo_client, example_dataset):
+def test_to_json_type(mongo_client, example_dataset_one):
     """
     Should return a dictionary for the document with all values converted to
     JSON safe types. All private fields should be excluded.
@@ -255,7 +316,7 @@ def test_insert(mongo_client):
     assert burt.lair.inventory.gold == 1000
     assert burt.lair.inventory.skulls == 100
 
-def test_update(mongo_client, example_dataset):
+def test_update(mongo_client, example_dataset_one):
     """Should update a document on the database"""
 
     # Update all values
@@ -305,7 +366,7 @@ def test_upsert(mongo_client):
 
     assert burt._id == id
 
-def test_delete(mongo_client, example_dataset):
+def test_delete(mongo_client, example_dataset_one):
     """Should delete a document from the database"""
     burt = ComplexDragon.one(Q.name == 'Burt')
     burt.delete()
@@ -346,9 +407,62 @@ def test_insert_many(mongo_client):
     assert dragons[2].name == 'Albert'
     assert dragons[2].breed == 'Stone dragon'
 
-def test_update_many(mongo_client):
-    """@@ Should update mulitple documents on the database"""
-    assert False
+def test_update_many(mongo_client, example_dataset_many):
+    """Should update mulitple documents on the database"""
+
+    # Check each dragon has been updated
+
+    # Select all the dragons
+    dragons = ComplexDragon.many()
+
+    # Give each dragon a second name
+    for dragon in dragons:
+        dragon.name += ' ' + dragon.name + 'son'
+
+    # Update all values for all the dragons in one go
+    ComplexDragon.update_many(dragons)
+
+    # Reload all the dragons
+    dragons = ComplexDragon.many()
+
+    assert dragons[0].name == 'Burt Burtson'
+    assert dragons[1].name == 'Fred Fredson'
+    assert dragons[2].name == 'Albert Albertson'
+
+    # Make various changes to the dragons only sum of which we want to stick
+    for dragon in dragons:
+        dragon.name = dragon.name.split(' ')[0]
+        dragon.breed = dragon.breed.replace('-', '_')
+        dragon.breed = dragon.breed.replace(' ', '_')
+        dragon.lair.inventory.gold += 100
+        dragon.lair.inventory.skulls += 10
+
+    # Update selected values for all the dragons in one go
+    Lair.update_many([d.lair for d in dragons], 'inventory.gold')
+    ComplexDragon.update_many(dragons, 'breed')
+
+    # Reload all the dragons
+    dragons = ComplexDragon.many()
+
+    # Names should be the same
+    assert dragons[0].name == 'Burt Burtson'
+    assert dragons[1].name == 'Fred Fredson'
+    assert dragons[2].name == 'Albert Albertson'
+
+    # Breeds should have changed
+    assert dragons[0].breed == 'Cold_drake'
+    assert dragons[1].breed == 'Fire_drake'
+    assert dragons[2].breed == 'Stone_dragon'
+
+    # Gold should have changed
+    assert dragons[0].lair.inventory.gold == 1100
+    assert dragons[1].lair.inventory.gold == 2100
+    assert dragons[2].lair.inventory.gold == 3100
+
+    # Skulls should be the same
+    assert dragons[0].lair.inventory.skulls == 100
+    assert dragons[1].lair.inventory.skulls == 200
+    assert dragons[2].lair.inventory.skulls == 300
 
 def test_delete_many(mongo_client):
     """@@ Should delete mulitple documents from the database"""
