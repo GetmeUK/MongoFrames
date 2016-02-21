@@ -478,7 +478,7 @@ def test_reload(mongo_client, example_dataset_one):
     """Should reload the current document's values from the database"""
 
     # Select Burt from the database
-    burt = ComplexDragon.one({'name': 'Burt'})
+    burt = ComplexDragon.one(Q.name == 'Burt')
 
     # Change some values and reload
     burt.name = 'Fred'
@@ -502,7 +502,7 @@ def test_by_id(mongo_client, example_dataset_many):
     """Should return a document by Id from the database"""
 
     # Get an Id for a dragon
-    id = ComplexDragon.one({'name': 'Fred'})._id
+    id = ComplexDragon.one(Q.name == 'Fred')._id
 
     # Load a dragon using the Id and make sure it's the same
     fred = ComplexDragon.by_id(id)
@@ -524,9 +524,25 @@ def test_count(mongo_client, example_dataset_many):
     count = ComplexDragon.count(Q.dob >= datetime(1981, 1, 1))
     assert count == 1
 
-def test_one(mongo_client):
-    """@@ Should return a the first document that matches the given query"""
-    assert False
+def test_one(mongo_client, example_dataset_many):
+    """Should return a the first document that matches the given query"""
+
+    # Select the first matching dragon
+    burt = ComplexDragon.one()
+    assert burt.name == 'Burt'
+
+    # Sort the results so we select the last matching dragon
+    albert = ComplexDragon.one(sort=[('_id', INDEX_DESCENDING)])
+    assert albert.name == 'Albert'
+
+    # Select the first dragon who's a fire-drake
+    fred = ComplexDragon.one(Q.breed == 'Fire-drake')
+    assert fred.name == 'Fred'
+
+    # Select a dragon with a different projection
+    burt = ComplexDragon.one(projection={'name': True})
+    assert burt.name == 'Burt'
+    assert burt.breed == None
 
 def test_many(mongo_client):
     """@@ Should return all documents that match the given query"""
@@ -564,7 +580,7 @@ def test_stop_listening(mongo_client):
     assert False
 
 def test_get_collection(mongo_client):
-    """@@ Return a reference to the database collection for the class"""
+    """Return a reference to the database collection for the class"""
     assert Dragon.get_collection() == mongo_client['mongoframes_test']['Dragon']
 
 def test_get_db(mongo_client):

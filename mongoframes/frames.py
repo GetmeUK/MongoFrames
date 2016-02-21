@@ -399,7 +399,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         return cls.get_collection().count(to_refs(filter), **kwargs)
 
     @classmethod
-    def one(cls, filter, **kwargs):
+    def one(cls, filter=None, **kwargs):
         """Find the first document matching the filter"""
         from mongoframes.queries import Condition, Group, to_refs
 
