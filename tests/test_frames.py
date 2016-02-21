@@ -498,13 +498,31 @@ def test_reload(mongo_client, example_dataset_one):
     assert burt.breed == None
     assert burt.lair == None
 
-def test_by_id(mongo_client):
-    """@@ Should return a document by Id from the database"""
-    assert False
+def test_by_id(mongo_client, example_dataset_many):
+    """Should return a document by Id from the database"""
 
-def test_by_count(mongo_client):
-    """@@ Should return a count for documents matching the given query"""
-    assert False
+    # Get an Id for a dragon
+    id = ComplexDragon.one({'name': 'Fred'})._id
+
+    # Load a dragon using the Id and make sure it's the same
+    fred = ComplexDragon.by_id(id)
+
+    assert fred.name == 'Fred'
+
+def test_count(mongo_client, example_dataset_many):
+    """Should return a count for documents matching the given query"""
+
+    # Count all dragons
+    count = ComplexDragon.count()
+    assert count == 3
+
+    # Count dragons that are cold or fire drakes
+    count = ComplexDragon.count(In(Q.breed, ['Cold-drake', 'Fire-drake']))
+    assert count == 2
+
+    # Count dragons born after 1980
+    count = ComplexDragon.count(Q.dob >= datetime(1981, 1, 1))
+    assert count == 1
 
 def test_one(mongo_client):
     """@@ Should return a the first document that matches the given query"""
