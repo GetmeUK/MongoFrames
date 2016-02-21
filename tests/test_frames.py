@@ -688,12 +688,33 @@ def test_nullify(mongo_client, example_dataset_many):
     burt = ComplexDragon.one(Q.name == 'Burt')
     assert burt.lair == None
 
-def test_pull(mongo_client):
-    """@@ Should pull references from a list field"""
-    assert False
+def test_pull(mongo_client, example_dataset_many):
+    """Should pull references from a list field"""
+
+    # Listen for delete events against lairs and pull any deleted lair from the
+    # associated dragons. For the sake of the tests here we're storing multiple
+    # lairs against the lair attribute instead of the intended one.
+    def on_delete(sender, documents):
+        Lair.pull(ComplexDragon, 'lair', documents)
+
+    ComplexDragon.listen('deleted', on_delete)
+
+    # List Burt stay in a few lairs
+    castle = Lair.one(Q.name == 'Castle')
+    burt = ComplexDragon.one(Q.name == 'Burt')
+    burt.lair = [burt.lair, castle]
+    burt.update()
+    burt.reload()
+
+    # Delete a lair and check the associated field against the dragon has been
+    # nullified.
+    lair = Lair.one(Q.name == 'Cave')
+    lair.delete()
+    burt.reload()
+    assert burt.lair == [castle]
 
 def test_listen(mongo_client):
-    """@@ Should add a callback for a signal against the class"""
+    """Should add a callback for a signal against the class"""
     assert False
 
 def test_stop_listening(mongo_client):
