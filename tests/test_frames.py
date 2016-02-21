@@ -568,5 +568,5 @@ def test_get_collection(mongo_client):
     assert False
 
 def test_get_db(mongo_client):
-    """@@ Return the database for the collection"""
-    assert False
+    """Return the database for the collection"""
+    assert Dragon.get_db() == mongo_client['mongoframes_test']
