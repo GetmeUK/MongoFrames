@@ -565,7 +565,7 @@ def test_stop_listening(mongo_client):
 
 def test_get_collection(mongo_client):
     """@@ Return a reference to the database collection for the class"""
-    assert False
+    assert Dragon.get_collection() == mongo_client['mongoframes_test']['Dragon']
 
 def test_get_db(mongo_client):
     """Return the database for the collection"""
