@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from pymongo import MongoClient
 import pytest
+from time import sleep
 
 from mongoframes import *
 
@@ -621,7 +622,38 @@ def test_timestamp_insert(mongo_client):
 
 def test_timestamp_update(mongo_client):
     """@@ Should assign a timestamp to the `modified` field for a document"""
-    assert False
+
+    # Assign a the timestamp helper to the insert event
+    MonitoredDragon.listen('insert', MonitoredDragon.timestamp_insert)
+    MonitoredDragon.listen('update', MonitoredDragon.timestamp_update)
+
+    # Insert a monitored dragon in the database
+    dragon = MonitoredDragon(name='Burt', breed='Cold-drake')
+    now = datetime.now()
+    now_tz = datetime.now(timezone.utc)
+    dragon.insert()
+
+    # Check the dragon has a modified timestamp set
+    assert (dragon.modified - now_tz) < timedelta(seconds=1)
+
+    # When the timestamps are reloaded whether they have associated timezones
+    # will depend on the mongodb client settings, in the tests the client is not
+    # timezone aware and so tests after the reload are against a naive datetime.
+    dragon.reload()
+
+    assert (dragon.modified - now) < timedelta(seconds=1)
+
+    # Wait a couple of seconds and then update the dragon
+    sleep(2)
+    now = datetime.now()
+    now_tz = datetime.now(timezone.utc)
+    dragon.breed = 'Fire-drake'
+    dragon.update('breed', 'modified')
+
+    # Check a new modified date has been set
+    assert (dragon.modified - now_tz) < timedelta(seconds=1)
+    dragon.reload()
+    assert (dragon.modified - now) < timedelta(seconds=1)
 
 def test_cascade(mongo_client):
     """@@ Should apply a cascading delete"""
