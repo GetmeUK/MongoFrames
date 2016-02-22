@@ -107,6 +107,7 @@ def test_paginator_with_projection(example_dataset):
             assert orc.name is None
 
 def test_paginator_with_per_page(example_dataset):
+    """Paginate all orcs but use a custom per page value"""
 
     # Paginate all orcs
     paginator = Paginator(Orc, per_page=100)
@@ -123,6 +124,7 @@ def test_paginator_with_per_page(example_dataset):
             i += 1
 
 def test_paginator_with_orphans(example_dataset):
+    """Paginate all orcs but allow up to 2 orphan results"""
 
     # Paginate all orcs
     paginator = Paginator(Orc, Q.name >= 'Orc 0918', orphans=2)
@@ -141,16 +143,44 @@ def test_paginator_with_orphans(example_dataset):
     # Check the last page has 22 items
     assert len(paginator[4]) == 22
 
+
 # Page tests
 
-# def test_page():
+def test_page(example_dataset):
+    """Test the results or extracting a paginated page"""
 
-    # getitem
-    # iter
-    # len
+    # Paginate all orcs
+    paginator = Paginator(Orc)
 
-# def test_page_items():
-# def test_page_next():
-# def test_page_number():
-# def test_page_offset():
-# def test_page_prev():
+    # First page
+    page = paginator[1]
+    assert page.prev == None
+    assert page.next == 2
+    assert page.number == 1
+    assert len(page) == paginator.per_page
+
+    i = 0
+    for orc in page:
+        assert orc.name == 'Orc {0:04d}'.format(i)
+        i += 1
+
+    # Second page
+    page = paginator[2]
+    assert page.prev == 1
+    assert page.next == 3
+    assert page.number == 2
+
+    i = 20
+    for orc in page.items:
+        assert orc.name == 'Orc {0:04d}'.format(i)
+        i += 1
+
+    # Last page
+    page = paginator[paginator.page_count]
+    assert page.prev == paginator.page_count - 1
+    assert page.next == None
+    assert page.number == paginator.page_count
+
+    # Find the offset of Orc 992
+    orc = Orc.one(Q.name == 'Orc 0992')
+    assert page.offset(orc) == 992

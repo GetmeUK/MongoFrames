@@ -187,4 +187,4 @@ class Paginator(object):
         """
         Return the maximum number of results that will be included per page.
         """
-        return self._orphans
+        return self._per_page
