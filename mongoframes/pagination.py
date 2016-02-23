@@ -5,6 +5,9 @@ Support for paginating frames.
 from copy import deepcopy
 import math
 
+from mongoframes.queries import Condition, Group, to_refs
+
+
 __all__ = (
     # Exceptions
     'InvalidPage',
@@ -100,8 +103,12 @@ class Paginator(object):
         # The frame class results are being paginated for
         self._frame_cls = frame_cls
 
-        # The filter applied when selecting results from the database
-        self._filter = deepcopy(filter)
+        # The filter applied when selecting results from the database (we
+        # flattern the filter at this point which effectively deep copies.
+        if isinstance(filter, (Condition, Group)):
+            self._filter = filter.to_dict()
+        else:
+            self._filter = to_refs(filter)
 
         # Any additional filter arguments applied when selecting results such as
         # sort and projection,
