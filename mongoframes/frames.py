@@ -156,6 +156,10 @@ class FrameMeta(type):
         if '_fields' in dct and not '_id' in dct['_fields']:
             dct['_fields'].update({'_id'})
 
+        # If no collection name is set then use the class name
+        if dct.get('_collection') is None:
+            dct['_collection'] = name
+
         return super(FrameMeta, meta).__new__(meta, name, bases, dct)
 
 

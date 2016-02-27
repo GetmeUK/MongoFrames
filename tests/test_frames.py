@@ -14,7 +14,6 @@ class Dragon(Frame):
     A dragon.
     """
 
-    _collection = 'Dragon'
     _fields = {
         'name',
         'breed'
@@ -39,7 +38,6 @@ class Lair(Frame):
     A lair in which a dragon resides.
     """
 
-    _collection = 'Lair'
     _fields = {
         'name',
         'inventory'
@@ -63,8 +61,6 @@ class ComplexDragon(Dragon):
 
 
 class MonitoredDragon(Dragon):
-
-    _collection = 'MonitoredDragon'
 
     _fields = Dragon._fields | {
         'created',
