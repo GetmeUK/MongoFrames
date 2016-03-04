@@ -531,6 +531,21 @@ def test_count(mongo_client, example_dataset_many):
     count = ComplexDragon.count(Q.dob >= datetime(1981, 1, 1))
     assert count == 1
 
+def test_ids(mongo_client, example_dataset_many):
+    """Should return a list of ids for documents matching the given query"""
+
+    # Ids for all dragons
+    ids = ComplexDragon.ids()
+    assert len(ids) == 3
+
+    # Ids for dragons that are cold or fire drakes
+    ids = ComplexDragon.ids(In(Q.breed, ['Cold-drake', 'Fire-drake']))
+    assert len(ids) == 2
+
+    # Ids for dragons born after 1980
+    ids = ComplexDragon.ids(Q.dob >= datetime(1981, 1, 1))
+    assert len(ids) == 1
+
 def test_one(mongo_client, example_dataset_many):
     """Should return a the first document that matches the given query"""
 

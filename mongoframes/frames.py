@@ -1,4 +1,5 @@
 from blinker import signal
+from bson.code import Code
 from bson.objectid import ObjectId
 from copy import deepcopy
 from datetime import date, datetime, time, timezone
@@ -401,6 +402,22 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
             filter = filter.to_dict()
 
         return cls.get_collection().count(to_refs(filter), **kwargs)
+
+    @classmethod
+    def ids(cls, filter=None):
+        """Return a list of Ids for documents matching the filter"""
+        from mongoframes.queries import Condition, Group, to_refs
+
+        # Find the documents
+        if isinstance(filter, (Condition, Group)):
+            filter = filter.to_dict()
+
+        documents = cls.get_collection().find(
+            to_refs(filter),
+            projection={'_id': True}
+            )
+
+        return [d['_id'] for d in list(documents)]
 
     @classmethod
     def one(cls, filter=None, **kwargs):
