@@ -77,7 +77,7 @@ def test_size():
 
 def test_type():
     """Should generate a equals instance of condition"""
-    assert Type(Q.foo, 'string').to_dict() == {'foo': {'$type': 'string'}}
+    assert Type(Q.foo, 1).to_dict() == {'foo': {'$type': 1}}
 
 
 # Groups
