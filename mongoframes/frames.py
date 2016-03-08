@@ -668,7 +668,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         ids = [to_refs(d[field]) for d in documents if d.get(field)]
         ref_cls.get_collection().update_many(
             {field: {'$in': ids}},
-            {'$pull:': {field: {'$in': ids}}}
+            {'$pull': {field: {'$in': ids}}}
             )
 
     # Signals
