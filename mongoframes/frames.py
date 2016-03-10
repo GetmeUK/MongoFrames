@@ -391,7 +391,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
     @classmethod
     def by_id(cls, id, **kwargs):
         """Load a document by Id"""
-        return cls.one({'_id': id}, **kwargs)
+        return cls.one({'_id': ObjectId(id)}, **kwargs)
 
     @classmethod
     def count(cls, filter=None, **kwargs):
