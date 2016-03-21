@@ -484,12 +484,16 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         # Dereference each reference
         for path, projection in subs.items():
 
-            # Check there is a $sub in the projection, else skip it
-            if '$sub' not in projection:
-                continue
-
             # Get the SubFrame class we'll use to wrap the embedded document
-            sub = projection.pop('$sub')
+            sub = None
+            expect_map = False
+            if '$sub' in projection:
+                sub = projection.pop('$sub')
+            elif '$sub.' in projection:
+                sub = projection.pop('$sub.')
+                expect_map = True
+            else:
+                continue
 
             # Add sub-frames to the documents
             for document in documents:
@@ -499,10 +503,18 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
                 if isinstance(value, dict):
                     # Single embedded document
-                    value = sub(**value)
-                else:
+                    if expect_map:
+                        value = {k: sub(**v) for k, v in value.items() \
+                                if isinstance(v, dict)}
+                    else:
+                        value = sub(**value)
+
+                elif isinstance(value, list):
                     # List of embedded documents
-                    value = [sub(**v) for v in values if v]
+                    value = [sub(**v) for v in value if isinstance(v, dict)]
+
+                else:
+                    raise TypeError('Not a supported sub-frame type')
 
                 child_document = document
                 keys = cls._path_to_keys(path)
@@ -530,8 +542,15 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
 
                 if isinstance(value, ObjectId):
                     ids.append(value)
-                else:
+
+                elif isinstance(value, list):
                     ids.extend(value)
+
+                elif isinstance(value, dict):
+                    ids.extend(value.values())
+
+                else:
+                    raise TypeError('Not a supported reference type')
 
             # Find the referenced documents
             ref = projection.pop('$ref')
@@ -550,9 +569,17 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
                 if isinstance(value, ObjectId):
                     # Single reference
                     value = frames.get(value, None)
-                else:
+
+                elif isinstance(value, list):
                     # List of references
                     value = [frames[id] for id in value if id in frames]
+
+                elif isinstance(value, dict):
+                    # Dictionary of references
+                    value = {key: frames.get(id) for key, id in value.items()}
+
+                else:
+                    raise TypeError('Not a supported reference type')
 
                 child_document = document
                 keys = cls._path_to_keys(path)
@@ -590,7 +617,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
                 # Store a reference/sub-frame projection
                 if '$ref' in value:
                     references[key] = value
-                elif '$sub' in value:
+                elif '$sub' in value or '$sub.' in value:
                     subs[key] = value
                 flat_projection[key] = True
 
@@ -598,7 +625,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
                 # Strip any $ref key
                 continue
 
-            elif key == '$sub':
+            elif key == '$sub' or key == '$sub.':
                 # Strip any $sub key
                 continue
 

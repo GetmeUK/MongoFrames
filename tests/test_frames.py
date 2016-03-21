@@ -49,7 +49,8 @@ class ComplexDragon(Dragon):
     _fields = Dragon._fields | {
         'dob',
         'lair',
-        'traits'
+        'traits',
+        'misc'
         }
 
     _default_projection = {
@@ -58,7 +59,6 @@ class ComplexDragon(Dragon):
             'inventory': {'$sub': Inventory}
             }
         }
-
 
 class MonitoredDragon(Dragon):
 
@@ -604,6 +604,61 @@ def test_many(mongo_client, example_dataset_many):
     assert dragons[1].breed == None
     assert dragons[2].name == 'Albert'
     assert dragons[2].breed == None
+
+def test_projection(mongo_client, example_dataset_one):
+    """Should allow references and subframes to be projected"""
+
+    # Select our complex dragon called burt
+    burt = ComplexDragon.one(Q.name == 'Burt')
+    inventory = Inventory(
+        gold=1000,
+        skulls=100
+        )
+
+    # Test list of references
+    burt.misc = Lair.many()
+    burt.update()
+    burt = ComplexDragon.one(
+        Q.name == 'Burt',
+        projection={'misc': {'$ref': Lair}}
+        )
+
+    assert len(burt.misc) == 1
+    assert burt.misc[0].name == 'Cave'
+
+    # Test dictionary of references
+    burt.misc = {'cave': Lair.one()}
+    burt.update()
+    burt = ComplexDragon.one(
+        Q.name == 'Burt',
+        projection={'misc': {'$ref': Lair}}
+        )
+
+    assert len(burt.misc.keys()) == 1
+    assert burt.misc['cave'].name == 'Cave'
+
+    # Test list of sub-frames
+    burt.misc = [inventory]
+    burt.update()
+    burt = ComplexDragon.one(
+        Q.name == 'Burt',
+        projection={'misc': {'$sub': Inventory}}
+        )
+
+    assert len(burt.misc) == 1
+    assert burt.misc[0].skulls == 100
+
+    # Test dict of sub-frames
+    burt.misc = {'spare': inventory}
+    burt.update()
+    burt = ComplexDragon.one(
+        Q.name == 'Burt',
+        projection={'misc': {'$sub.': Inventory}}
+        )
+
+    assert len(burt.misc.keys()) == 1
+    assert burt.misc['spare'].skulls == 100
+
 
 def test_timestamp_insert(mongo_client):
     """
