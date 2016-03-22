@@ -1,5 +1,4 @@
 from blinker import signal
-from bson.code import Code
 from bson.objectid import ObjectId
 from copy import deepcopy
 from datetime import date, datetime, time, timezone
