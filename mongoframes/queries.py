@@ -117,15 +117,13 @@ class Q(metaclass=QMeta):
 def All(q, value):
     return Condition(q._path, to_refs(value), '$all')
 
-def ElemMatch(q, value):
+def ElemMatch(q, *value):
     # Support for a list of conditions being specified for an element match
-    if isinstance(value, list):
-        new_value = {}
-        for condition in value:
-            deep_merge(condition.to_dict(), new_value)
-        value = new_value
+    new_value = {}
+    for condition in value:
+        deep_merge(condition.to_dict(), new_value)
 
-    return Condition(q._path, value, '$elemMatch')
+    return Condition(q._path, new_value, '$elemMatch')
 
 def Exists(q, value):
     return Condition(q._path, value, '$exists')

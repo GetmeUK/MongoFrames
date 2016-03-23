@@ -52,7 +52,7 @@ def test_all():
 
 def test_elem_match():
     """Should generate an element match condition"""
-    condition = ElemMatch(Q.foo, [Q > 1, Q < 5])
+    condition = ElemMatch(Q.foo, Q > 1, Q < 5)
     assert condition.to_dict() == {'foo': {'$elemMatch': {'$gt': 1, '$lt': 5}}}
 
 def test_exists():
