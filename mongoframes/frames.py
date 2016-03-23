@@ -144,7 +144,7 @@ class _BaseFrame:
                 child_dict.pop(keys[-1])
 
 
-class FrameMeta(type):
+class _FrameMeta(type):
     """
     Meta class for `Frame`s to ensure an `_id` is present in any defined set of
     fields.
@@ -160,10 +160,10 @@ class FrameMeta(type):
         if dct.get('_collection') is None:
             dct['_collection'] = name
 
-        return super(FrameMeta, meta).__new__(meta, name, bases, dct)
+        return super(_FrameMeta, meta).__new__(meta, name, bases, dct)
 
 
-class Frame(_BaseFrame, metaclass=FrameMeta):
+class Frame(_BaseFrame, metaclass=_FrameMeta):
     """
     Frames allow documents to be wrapped in a class adding support for dot
     notation access to attributes and numerous short-cut/helper methods.
@@ -210,7 +210,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         assert '_id' not in self._document, "Can't insert documents with `_id`"
 
         # Send insert signal
-        signal('insert').send(self.__class__, documents=[self])
+        signal('insert').send(self.__class__, frames=[self])
 
         # Prepare the document to be inserted
         document = to_refs(self._document)
@@ -219,7 +219,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         self._id = self.get_collection().insert_one(document).inserted_id
 
         # Send inserted signal
-        signal('inserted').send(self.__class__, documents=[self])
+        signal('inserted').send(self.__class__, frames=[self])
 
     def update(self, *fields):
         """
@@ -231,7 +231,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         assert '_id' in self._document, "Can't update documents without `_id`"
 
         # Send update signal
-        signal('update').send(self.__class__, documents=[self])
+        signal('update').send(self.__class__, frames=[self])
 
         # Check for selective updates
         if len(fields) > 0:
@@ -248,7 +248,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         self.get_collection().update_one({'_id': self._id}, {'$set': document})
 
         # Send updated signal
-        signal('updated').send(self.__class__, documents=[self])
+        signal('updated').send(self.__class__, frames=[self])
 
     def upsert(self, *fields):
         """
@@ -267,13 +267,13 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         assert '_id' in self._document, "Can't delete documents without `_id`"
 
         # Send delete signal
-        signal('delete').send(self.__class__, documents=[self])
+        signal('delete').send(self.__class__, frames=[self])
 
         # Delete the document
         self.get_collection().delete_one({'_id': self._id})
 
         # Send deleted signal
-        signal('deleted').send(self.__class__, documents=[self])
+        signal('deleted').send(self.__class__, frames=[self])
 
     @classmethod
     def insert_many(cls, documents):
@@ -287,7 +287,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
                 "Can't insert documents with `_id`s"
 
         # Send insert signal
-        signal('insert').send(cls, documents=frames)
+        signal('insert').send(cls, frames=frames)
 
         # Prepare the documents to be inserted
         documents = [to_refs(f._document) for f in frames]
@@ -300,7 +300,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
             frames[i]._id = id
 
         # Send inserted signal
-        signal('inserted').send(cls, documents=frames)
+        signal('inserted').send(cls, frames=frames)
 
     @classmethod
     def update_many(cls, documents, *fields):
@@ -318,7 +318,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
                 "Can't update documents without `_id`s"
 
         # Send update signal
-        signal('update').send(cls, documents=frames)
+        signal('update').send(cls, frames=frames)
 
         # Prepare the documents to be updated
 
@@ -342,7 +342,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
                 {'_id': document['_id']}, {'$set': document})
 
         # Send updated signal
-        signal('updated').send(cls.__class__, documents=frames)
+        signal('updated').send(cls.__class__, frames=frames)
 
     @classmethod
     def delete_many(cls, documents):
@@ -356,7 +356,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
                 "Can't delete documents without `_id`s"
 
         # Send delete signal
-        signal('delete').send(cls, documents=frames)
+        signal('delete').send(cls, frames=frames)
 
         # Prepare the documents to be deleted
         ids = [f._id for f in frames]
@@ -365,7 +365,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         cls.get_collection().delete_many({'_id': {'$in': ids}})
 
         # Send deleted signal
-        signal('deleted').send(cls.__class__, documents=frames)
+        signal('deleted').send(cls.__class__, frames=frames)
 
     @classmethod
     def _ensure_frames(cls, documents):
@@ -643,7 +643,7 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
     # Integrity helpers
 
     @staticmethod
-    def timestamp_insert(sender, documents=[]):
+    def timestamp_insert(sender, frames):
         """
         Timestamp the created and modified fields for all documents. This method
         should be bound to a frame class like so:
@@ -652,13 +652,13 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         MyFrameClass.listen('insert', MyFrameClass.timestamp_insert)
         ```
         """
-        for document in documents:
+        for frame in frames:
             timestamp = datetime.now(timezone.utc)
-            document.created = timestamp
-            document.modified = timestamp
+            frame.created = timestamp
+            frame.modified = timestamp
 
     @staticmethod
-    def timestamp_update(sender, documents=[]):
+    def timestamp_update(sender, frames):
         """
         Timestamp the modified field for all documents. This method should be
         bound to a frame class like so:
@@ -667,31 +667,31 @@ class Frame(_BaseFrame, metaclass=FrameMeta):
         MyFrameClass.listen('update', MyFrameClass.timestamp_update)
         ```
         """
-        for document in documents:
-            document.modified = datetime.now(timezone.utc)
+        for frame in frames:
+            frame.modified = datetime.now(timezone.utc)
 
     @classmethod
-    def cascade(cls, ref_cls, field, documents):
+    def cascade(cls, ref_cls, field, frames):
         """Apply a cascading delete (does not emit signals)"""
         from mongoframes.queries import to_refs
-        ids = [to_refs(d[field]) for d in documents if d.get(field)]
+        ids = [to_refs(f[field]) for f in frames if f.get(field)]
         ref_cls.get_collection().delete_many({'_id': {'$in': ids}})
 
     @classmethod
-    def nullify(cls, ref_cls, field, documents):
+    def nullify(cls, ref_cls, field, frames):
         """Nullify a reference field (does not emit signals)"""
         from mongoframes.queries import to_refs
-        ids = [to_refs(d[field]) for d in documents if d.get(field)]
+        ids = [to_refs(f[field]) for f in frames if f.get(field)]
         ref_cls.get_collection().update_many(
             {field: {'$in': ids}},
             {'$set': {field: None}}
             )
 
     @classmethod
-    def pull(cls, ref_cls, field, documents):
+    def pull(cls, ref_cls, field, frames):
         """Pull references from a list field (does not emit signals)"""
         from mongoframes.queries import to_refs
-        ids = [to_refs(d[field]) for d in documents if d.get(field)]
+        ids = [to_refs(f[field]) for f in frames if f.get(field)]
         ref_cls.get_collection().update_many(
             {field: {'$in': ids}},
             {'$pull': {field: {'$in': ids}}}

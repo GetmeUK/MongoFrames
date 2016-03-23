@@ -727,8 +727,8 @@ def test_cascade(mongo_client, example_dataset_many):
 
     # Listen for delete events against dragons and delete any associated lair at
     # the same time.
-    def on_delete(sender, documents):
-        ComplexDragon.cascade(Lair, 'lair', documents)
+    def on_delete(sender, frames):
+        ComplexDragon.cascade(Lair, 'lair', frames)
 
     ComplexDragon.listen('deleted', on_delete)
 
@@ -743,8 +743,8 @@ def test_nullify(mongo_client, example_dataset_many):
 
     # Listen for delete events against lairs and nullify the lair field against
     # associated dragons
-    def on_delete(sender, documents):
-        Lair.nullify(ComplexDragon, 'lair', documents)
+    def on_delete(sender, frames):
+        Lair.nullify(ComplexDragon, 'lair', frames)
 
     ComplexDragon.listen('deleted', on_delete)
 
@@ -761,8 +761,8 @@ def test_pull(mongo_client, example_dataset_many):
     # Listen for delete events against lairs and pull any deleted lair from the
     # associated dragons. For the sake of the tests here we're storing multiple
     # lairs against the lair attribute instead of the intended one.
-    def on_delete(sender, documents):
-        Lair.pull(ComplexDragon, 'lair', documents)
+    def on_delete(sender, frames):
+        Lair.pull(ComplexDragon, 'lair', frames)
 
     ComplexDragon.listen('deleted', on_delete)
 
@@ -787,23 +787,23 @@ def test_listen(mongo_client):
     # frame.
     mock = Mock()
 
-    def on_insert(sender, documents):
-        mock.insert(sender, documents)
+    def on_insert(sender, frames):
+        mock.insert(sender, frames)
 
-    def on_inserted(sender, documents):
-        mock.inserted(sender, documents)
+    def on_inserted(sender, frames):
+        mock.inserted(sender, frames)
 
-    def on_update(sender, documents):
-        mock.update(sender, documents)
+    def on_update(sender, frames):
+        mock.update(sender, frames)
 
-    def on_updated(sender, documents):
-        mock.updated(sender, documents)
+    def on_updated(sender, frames):
+        mock.updated(sender, frames)
 
-    def on_delete(sender, documents):
-        mock.delete(sender, documents)
+    def on_delete(sender, frames):
+        mock.delete(sender, frames)
 
-    def on_deleted(sender, documents):
-        mock.deleted(sender, documents)
+    def on_deleted(sender, frames):
+        mock.deleted(sender, frames)
 
     # Listen for all events triggered by frames
     Dragon.listen('insert', on_insert)
@@ -834,8 +834,8 @@ def test_stop_listening(mongo_client):
     # Add an listener for the insert event
     mock = Mock()
 
-    def on_insert(sender, documents):
-        mock.insert(sender, documents)
+    def on_insert(sender, frames):
+        mock.insert(sender, frames)
 
     Dragon.listen('on_insert', on_insert)
 
