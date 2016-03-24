@@ -124,7 +124,7 @@ class Paginator(object):
         self._orphans = orphans
 
         # Count the total results being paginated
-        self._items_count = frame_cls.count(deepcopy(self._filter))
+        self._items_count = frame_cls.count(self._filter)
 
         # Calculated the number of pages
         total = self._items_count - orphans
@@ -151,7 +151,7 @@ class Paginator(object):
             filter_args['limit'] += self.orphans
 
         # Select the results for the page
-        items = self._frame_cls.many(deepcopy(self._filter), **filter_args)
+        items = self._frame_cls.many(self._filter, **filter_args)
 
         # Build the page
         return Page(
