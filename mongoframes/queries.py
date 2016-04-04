@@ -40,6 +40,7 @@ class Condition:
         self.operator = operator
 
     def to_dict(self):
+        """Return a dictionary suitable for use with pymongo as a filter"""
         if self.operator == '$eq':
             return {self.q: self.value}
         if self.q is None:
@@ -79,7 +80,11 @@ class QMeta(type):
 
 class Q(metaclass=QMeta):
     """
-    Start point for query creation.
+    Start point for the query creation, the Q class is a special type of class
+    that's typically initialized by appending an attribute, for example:
+
+        Q.hit_points > 100
+
     """
 
     def __init__(self, path):
@@ -115,10 +120,17 @@ class Q(metaclass=QMeta):
 # Operators
 
 def All(q, value):
+    """
+    The All operator selects documents where the value of the field is an list
+    that contains all the specified elements.
+    """
     return Condition(q._path, to_refs(value), '$all')
 
 def ElemMatch(q, *value):
-    # Support for a list of conditions being specified for an element match
+    """
+    The ElemMatch operator matches documents that contain an array field with at
+    least one element that matches all the specified query criteria.
+    """
     new_value = {}
     for condition in value:
         deep_merge(condition.to_dict(), new_value)
@@ -126,12 +138,26 @@ def ElemMatch(q, *value):
     return Condition(q._path, new_value, '$elemMatch')
 
 def Exists(q, value):
+    """
+    When exists is True, Exists matches the documents that contain the field,
+    including documents where the field value is null. If exists is False, the
+    query returns only the documents that do not contain the field.
+    """
     return Condition(q._path, value, '$exists')
 
 def In(q, value):
+    """
+    The In operator selects the documents where the value of a field equals any
+    value in the specified list.
+    """
     return Condition(q._path, to_refs(value), '$in')
 
 def Not(condition):
+    """
+    Not performs a logical NOT operation on the specified condition and selects
+    the documents that do not match. This includes documents that do not contain
+    the field.
+    """
     return Condition(
         condition.q,
         {condition.operator: condition.value},
@@ -139,19 +165,34 @@ def Not(condition):
         )
 
 def NotIn(q, value):
+    """
+    The NotIn operator selects documents where the field value is not in the
+    specified list or the field does not exists.
+    """
     return Condition(q._path, to_refs(value), '$nin')
 
 def Size(q, value):
+    """
+    The Size operator matches any list with the number of elements specified by
+    size.
+    """
     return Condition(q._path, value, '$size')
 
 def Type(q, value):
+    """
+    Type selects documents where the value of the field is an instance of the
+    specified BSON type.
+    """
     return Condition(q._path, value, '$type')
 
 
 # Groups
 
 class Group:
-    """Base class for groups"""
+    """
+    The Group class is used as a base class for operators that group together
+    two or more conditions.
+    """
 
     operator = ''
 
@@ -159,6 +200,7 @@ class Group:
         self.conditions = conditions
 
     def to_dict(self):
+        """Return a dictionary suitable for use with pymongo as a filter"""
         raw_conditions = []
         for condition in self.conditions:
             if isinstance(condition, (Condition, Group)):
@@ -169,16 +211,29 @@ class Group:
 
 
 class And(Group):
+    """
+    And performs a logical AND operation on a list of two or more conditions and
+    selects the documents that satisfy all the conditions.
+    """
 
     operator = '$and'
 
 
 class Or(Group):
+    """
+    The Or operator performs a logical OR operation on a list of two or more
+    conditions and selects the documents that satisfy at least one of the
+    conditions.
+    """
 
     operator = '$or'
 
 
 class Nor(Group):
+    """
+    Nor performs a logical NOR operation on a list of one or more conditions and
+    selects the documents that fail all the conditions.
+    """
 
     operator = '$nor'
 
