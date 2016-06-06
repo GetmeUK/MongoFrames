@@ -73,10 +73,6 @@ class Page(object):
         """Return the page number"""
         return self._number
 
-    def offset(self, item):
-        """Return the offset for an item in the page"""
-        return self._offset + self.items.index(item)
-
     @property
     def prev(self):
         """
@@ -84,11 +80,15 @@ class Page(object):
         """
         return self._prev
 
+    def offset(self, item):
+        """Return the offset for an item in the page"""
+        return self._offset + self.items.index(item)
+
 
 class Paginator(object):
     """
-    A pagination class for slicing items into pages. This class is designed
-    to work with Frame classes.
+    A pagination class for slicing query results into pages. This class is
+    designed to work with Frame classes.
     """
 
     def __init__(
@@ -192,6 +192,6 @@ class Paginator(object):
     @property
     def per_page(self):
         """
-        Return the maximum number of results that will be included per page.
+        Return the number of results per page (with the exception of orphans).
         """
         return self._per_page

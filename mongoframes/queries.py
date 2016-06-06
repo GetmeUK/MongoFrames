@@ -126,16 +126,16 @@ def All(q, value):
     """
     return Condition(q._path, to_refs(value), '$all')
 
-def ElemMatch(q, *value):
+def ElemMatch(q, *conditions):
     """
     The ElemMatch operator matches documents that contain an array field with at
     least one element that matches all the specified query criteria.
     """
-    new_value = {}
-    for condition in value:
-        deep_merge(condition.to_dict(), new_value)
+    new_condition = {}
+    for condition in conditions:
+        deep_merge(condition.to_dict(), new_condition)
 
-    return Condition(q._path, new_value, '$elemMatch')
+    return Condition(q._path, new_condition, '$elemMatch')
 
 def Exists(q, value):
     """
