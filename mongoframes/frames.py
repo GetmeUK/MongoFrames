@@ -533,20 +533,20 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 continue
 
             # Collect Ids of documents to dereference
-            ids = []
+            ids = set()
             for document in documents:
                 value = cls._path_to_value(path, document)
                 if not value:
                     continue
 
                 if isinstance(value, ObjectId):
-                    ids.append(value)
+                    ids.add(value)
 
                 elif isinstance(value, list):
-                    ids.extend(value)
+                    ids.update(value)
 
                 elif isinstance(value, dict):
-                    ids.extend(value.values())
+                    ids.update(value.values())
 
                 else:
                     raise TypeError('Not a supported reference type')
@@ -554,7 +554,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
             # Find the referenced documents
             ref = projection.pop('$ref')
             frames = ref.many(
-                {'_id': {'$in': ids}},
+                {'_id': {'$in': list(ids)}},
                 projection=projection
                 )
             frames = {f._id: f for f in frames}

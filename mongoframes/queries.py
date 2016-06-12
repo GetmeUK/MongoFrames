@@ -2,6 +2,8 @@
 A set of helpers to simplify the creation of mongodb queries.
 """
 
+import re
+
 
 __all__ = [
     # Queries
