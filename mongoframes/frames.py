@@ -172,10 +172,10 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
     # The MongoDB client used to interface with the database
     _client = None
 
-    # The database on which this collection the frame represents is located
+    # The database on which this collection the class represents is located
     _db = None
 
-    # The database collection this frame represents
+    # The database collection this class represents
     _collection = None
 
     # The documents defined fields
@@ -302,6 +302,8 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         # Send inserted signal
         signal('inserted').send(cls, frames=frames)
 
+        return frames
+
     @classmethod
     def update_many(cls, documents, *fields):
         """
@@ -383,13 +385,13 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
     # Querying
 
     def reload(self, **kwargs):
-        """Reload the document with the given projection"""
+        """Reload the document"""
         frame = self.one({'_id': self._id}, **kwargs)
         self._document = frame._document
 
     @classmethod
     def by_id(cls, id, **kwargs):
-        """Load a document by Id"""
+        """Get a document by ID"""
         return cls.one({'_id': ObjectId(id)}, **kwargs)
 
     @classmethod
@@ -403,7 +405,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         return cls.get_collection().count(to_refs(filter), **kwargs)
 
     @classmethod
-    def ids(cls, filter=None):
+    def ids(cls, filter=None, **kwargs):
         """Return a list of Ids for documents matching the filter"""
         from mongoframes.queries import Condition, Group, to_refs
 
@@ -413,14 +415,15 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
         documents = cls.get_collection().find(
             to_refs(filter),
-            projection={'_id': True}
+            projection={'_id': True},
+            **kwargs
             )
 
         return [d['_id'] for d in list(documents)]
 
     @classmethod
     def one(cls, filter=None, **kwargs):
-        """Find the first document matching the filter"""
+        """Return the first document matching the filter"""
         from mongoframes.queries import Condition, Group, to_refs
 
         # Flatten the projection
