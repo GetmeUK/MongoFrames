@@ -594,20 +594,11 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         """
         Flatten a structured projection (structure projections support for
         projections of (to be) dereferenced fields.
-
-        projection = {
-            'name': True,
-            'email': True,
-            'company': {
-                '$ref': Company,
-                'name': True
-            }
-        }
         """
 
         # If `projection` is empty return a full projection based on `_fields`
         if not projection:
-            return {fn: True for fn in cls._fields}, {}, {}
+            return {f: True for f in cls._fields}, {}, {}
 
         # Flatten the projection
         flat_projection = {}
@@ -639,7 +630,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         # If only references and sub-frames where specified in the projection
         # then return a full projection based on `_fields`.
         if inclusive:
-            flat_projection = {fn: True for fn in cls._fields}
+            flat_projection = {f: True for f in cls._fields}
 
         return flat_projection, references, subs
 
