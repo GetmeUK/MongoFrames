@@ -243,6 +243,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
         # Prepare the document to be updated
         document = to_refs(document)
+        document.pop('_id', None)
 
         # Update the document
         self.get_collection().update_one({'_id': self._id}, {'$set': document})
@@ -340,8 +341,9 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
         # Update the documents
         for document in documents:
+            _id = document.pop('_id')
             cls.get_collection().update(
-                {'_id': document['_id']}, {'$set': document})
+                {'_id': _id}, {'$set': document})
 
         # Send updated signal
         signal('updated').send(cls.__class__, frames=frames)
