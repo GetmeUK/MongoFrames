@@ -4,6 +4,7 @@ bin/
 lib/
 share/
 dist/
+.tox/
 *.egg-info/
 *.egg
 *.py[cod]
