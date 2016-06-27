@@ -428,13 +428,13 @@ def test_update_many(mongo_client, example_dataset_many):
     ComplexDragon.update_many(dragons)
 
     # Reload all the dragons
-    dragons = ComplexDragon.many()
+    dragons = ComplexDragon.many(sort=[('_id', ASC)])
 
     assert dragons[0].name == 'Burt Burtson'
     assert dragons[1].name == 'Fred Fredson'
     assert dragons[2].name == 'Albert Albertson'
 
-    # Make various changes to the dragons only sum of which we want to stick
+    # Make various changes to the dragons only some of which we want to stick
     for dragon in dragons:
         dragon.name = dragon.name.split(' ')[0]
         dragon.breed = dragon.breed.replace('-', '_')
