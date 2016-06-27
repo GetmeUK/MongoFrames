@@ -406,7 +406,7 @@ def test_insert_many(mongo_client):
     assert Dragon.count() == 3
 
     # Check the details for each dragon
-    dragons = Dragon.many()
+    dragons = Dragon.many(sort=[('_id', ASC)])
     assert dragons[0].name == 'Burt'
     assert dragons[0].breed == 'Cold-drake'
     assert dragons[1].name == 'Fred'
@@ -418,7 +418,7 @@ def test_update_many(mongo_client, example_dataset_many):
     """Should update mulitple documents on the database"""
 
     # Select all the dragons
-    dragons = ComplexDragon.many()
+    dragons = ComplexDragon.many(sort=[('_id', ASC)])
 
     # Give each dragon a second name
     for dragon in dragons:
@@ -447,7 +447,7 @@ def test_update_many(mongo_client, example_dataset_many):
     ComplexDragon.update_many(dragons, 'breed')
 
     # Reload all the dragons
-    dragons = ComplexDragon.many()
+    dragons = ComplexDragon.many(sort=[('_id', ASC)])
 
     # Names should be the same
     assert dragons[0].name == 'Burt Burtson'
@@ -570,7 +570,7 @@ def test_many(mongo_client, example_dataset_many):
     """Should return all documents that match the given query"""
 
     # Select all dragons
-    dragons = ComplexDragon.many()
+    dragons = ComplexDragon.many(sort=[('_id', ASC)])
 
     assert len(dragons) == 3
     assert dragons[0].name == 'Burt'
@@ -596,7 +596,7 @@ def test_many(mongo_client, example_dataset_many):
     assert dragons[1].name == 'Fred'
 
     # Select all dragons with a different projection
-    dragons = ComplexDragon.many(projection={'name': True})
+    dragons = ComplexDragon.many(sort=[('_id', ASC)], projection={'name': True})
 
     assert dragons[0].name == 'Burt'
     assert dragons[0].breed == None
