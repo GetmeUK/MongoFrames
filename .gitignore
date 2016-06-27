@@ -12,6 +12,7 @@ __pycache__/
 *.so
 *~
 pyvenv.cfg
+.pypirc
 
 # due to using tox and pytest
 .tox
