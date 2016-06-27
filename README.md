@@ -13,8 +13,8 @@ MongoFrames is a fast unobtrusive MongoDB ODM for Python designed to fit into a 
 
 We recommend you use [virtualenv](https://virtualenv.pypa.io) or [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io) to create a virtual environment for your install. There are several options for installing MongoFrames:
 
-- `pip install mongoengine` *(recommended)*
-- `easy_install mongoengine`
+- `pip install MongoFrames` *(recommended)*
+- `easy_install MongoFrames`
 - Download the source and run `python setup.py install`
 
 ## Dependencies
