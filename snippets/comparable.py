@@ -23,7 +23,7 @@ class ChangeLogEntry(Frame):
         'details'
         }
 
-    # A set of HTML templates used to output the *diff* for a changelog entry
+    # A set of HTML templates used to output the *diff* for a change log entry
     _templates = {
         'add': '''
             <div class="change change--add">
@@ -76,7 +76,7 @@ class ChangeLogEntry(Frame):
 
     def add_diff(self, original, new):
         """
-        Set the details of the changelog entry as the difference between two
+        Set the details of the change log entry as the difference between two
         dictionaries (original vs. new). The change log uses the following
         format:
 
@@ -229,8 +229,8 @@ class ChangeLogEntry(Frame):
             if frame.user:
                 frame.user_sticky_label = str(frame.user)
 
-ChangelogEntry.listen('insert', ChangelogEntry.timestamp_insert)
-ChangelogEntry.listen('insert', ChangelogEntry._on_insert)
+ChangeLogEntry.listen('insert', ChangeLogEntry.timestamp_insert)
+ChangeLogEntry.listen('insert', ChangeLogEntry._on_insert)
 
 
 class ComparableFrame(Frame):
@@ -306,7 +306,7 @@ class ComparableFrame(Frame):
         self.delete()
 
         # Log the change
-        entry = ChangelogEntry({
+        entry = ChangeLogEntry({
             'type': 'DELETED',
             'documents': [self],
             'user': user
@@ -324,7 +324,7 @@ class ComparableFrame(Frame):
         self.insert()
 
         # Log the insert
-        entry = ChangelogEntry({
+        entry = ChangeLogEntry({
             'type': 'ADDED',
             'documents': [self],
             'user': user
@@ -353,7 +353,7 @@ class ComparableFrame(Frame):
         self.update(*fields)
 
         # Create an entry and perform a diff
-        entry = ChangelogEntry({
+        entry = ChangeLogEntry({
             'type': 'UPDATED',
             'documents': [self],
             'user': user
