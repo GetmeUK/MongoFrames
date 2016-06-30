@@ -1,3 +1,5 @@
+# validated.py
+
 from mongoframes import *
 
 __all__ = [
@@ -47,8 +49,8 @@ class InvalidDocument(Exception):
     An exception raised when `save` is called and the document fails validation.
     """
 
-    def __init__(errors):
-        super(InvalidDocument, self).__init__()
+    def __init__(self, errors):
+        super(InvalidDocument, self).__init__(str(errors))
         self.errors = errors
 
 
@@ -68,7 +70,7 @@ class ValidatedFrame(Frame):
         if not fields:
             fields = self._fields
 
-        data = {f: self[f] for f in fields}
+        data = {f: self[f] for f in fields if f in self}
 
         # Build the form to validate our data with
         form = self._form(FormData(data))
@@ -83,4 +85,4 @@ class ValidatedFrame(Frame):
             raise InvalidDocument(form.errors)
 
         # Document is valid, save the changes :)
-        self.upsert(*fields)
+        self.upsert(*fields)​​​​​​​​​​​
