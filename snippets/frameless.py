@@ -1,5 +1,5 @@
 from mongoframes import *
-from mongoframes.frames import _BaseFrame, FrameMeta
+from mongoframes.frames import _FrameMeta
 
 __all__ = [
     'Frameless',
@@ -7,7 +7,7 @@ __all__ = [
     ]
 
 
-class FramelessMeta(FrameMeta):
+class _FramelessMeta(_FrameMeta):
     """
     Meta class for `Frameless` to set the `_collection` value if not set.
     """
@@ -18,15 +18,10 @@ class FramelessMeta(FrameMeta):
         if dct.get('_collection') is None:
             dct['_collection'] = name
 
-        return super(FrameMeta, meta).__new__(meta, name, bases, dct)
-
-    @property
-    def _fields(cls):
-        # There are no defined fields.
-        return set({})
+        return super(_FramelessMeta, meta).__new__(meta, name, bases, dct)
 
 
-class Frameless(Frame, metaclass=FramelessMeta):
+class Frameless(Frame, metaclass=_FramelessMeta):
     """
     A Frame-like class with no defined set of fields.
     """
@@ -43,6 +38,11 @@ class Frameless(Frame, metaclass=FramelessMeta):
             self.__dict__['_document'][name] = value
         else:
             super(Frameless, self).__setattr__(name, value)
+
+    @property
+    def fields(self):
+        """Return a list of fields for this document"""
+        return self._document.keys()
 
     @classmethod
     def _flatten_projection(cls, projection):
@@ -82,7 +82,7 @@ class Frameless(Frame, metaclass=FramelessMeta):
                 flat_projection[key] = value
                 inclusive = False
 
-        # If only references and `SubFrames` where specified in the projection
+        # If only references and `SubFrames` were specified in the projection
         # then return a full projection.
         if inclusive:
             flat_projection = {'__': False}
@@ -90,7 +90,7 @@ class Frameless(Frame, metaclass=FramelessMeta):
         return flat_projection, references, subs
 
 
-class SubFrameless(_BaseFrame):
+class SubFrameless(SubFrame):
     """
     A SubFrame-like class with no defined set of fields.
     """
