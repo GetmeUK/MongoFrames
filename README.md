@@ -1,3 +1,5 @@
+<a href="http://mongoframes.com"><img width="188" src="http://mongoframes.com/images/github-splash.png" alt="MongoFrames logo"></a>
+
 # MongoFrames
 
 [![Build Status](https://travis-ci.org/GetmeUK/MongoFrames.svg?branch=master)](https://travis-ci.org/GetmeUK/MongoFrames)
