@@ -1,3 +1,5 @@
+# comparable.py
+
 from mongoframes import *
 from datetime import date
 
@@ -26,45 +28,50 @@ class ChangeLogEntry(Frame):
     # A set of HTML templates used to output the *diff* for a change log entry
     _templates = {
         'add': '''
-            <div class="change change--add">
-                <div class="change__field">{field}</div>
-                <div class="change__values">
-                    <div class="change__value change__value--new">
+
+                {field}
+
+
                         {new_value}
-                    </div>
-                </div>
-            </div>
+
+
+
             ''',
 
         'update': '''
-            <div class="change change--update">
-                <div class="change__field">{field}</div>
-                <div class="change__values">
-                    <div class="change__value change__value--original">
+
+                {field}
+
+
                         {original_value}
-                    </div>
-                    <div class="change__value change__value--new">
+
+
                         {new_value}
-                    </div>
-                </div>
-            </div>
+
+
+
             ''',
 
         'delete': '''
-            <div class="change change--delete">
-                <div class="change__field">{field}</div>
-                <div class="change__values">
-                    <div class="change__value change__value--original">
+
+                {field}
+
+
                         {original_value}
-                    </div>
-                </div>
-            </div>
+
+
+
             '''
         }
 
     @property
+    def diff_html(self):
+        """Return the entries diff in HTML format"""
+        return self.diff_to_html(self.details)
+
+    @property
     def is_diff(self):
-        """Return true if there are any differences logged"""
+        """Return True if there are any differences logged"""
         if not isinstance(self.details, dict):
             return False
 
@@ -176,7 +183,7 @@ class ChangeLogEntry(Frame):
         # Updates
         fields = sorted(details.get('updates', {}))
         for field in fields:
-            original_value = _(details['updates'][field][0])
+            original_value = _frame(details['updates'][field][0])
             if isinstance(original_value, list):
                 original_value = ', '.join([_frame(v) for v in original_value])
 
@@ -216,7 +223,7 @@ class ChangeLogEntry(Frame):
         return value
 
     @staticmethod
-    def _on_insert(sender, frames=[]):
+    def _on_insert(sender, frames):
         for frame in frames:
 
             # Record *sticky* labels for the change so even if the documents or
@@ -315,10 +322,8 @@ class ComparableFrame(Frame):
 
         return entry
 
-    def logged_insert(self, user, form):
+    def logged_insert(self, user):
         """Create and insert the document and log the event in the change log"""
-
-        data = form.populate_obj(self)
 
         # Insert the frame's document
         self.insert()
@@ -348,7 +353,8 @@ class ComparableFrame(Frame):
              _fields = data.keys()
 
         for field in _fields:
-            setattr(self, k, v)
+            if field in data:
+                setattr(self, field, data[field])
 
         self.update(*fields)
 
