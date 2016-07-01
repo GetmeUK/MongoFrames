@@ -191,7 +191,7 @@ class PublisherFrame(Frame):
             g.draft = True
             yield
         finally:
-            g.working_draft = previous_state
+            g.draft = previous_state
 
     @classmethod
     @contextmanager
