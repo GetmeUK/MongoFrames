@@ -28,39 +28,39 @@ class ChangeLogEntry(Frame):
     # A set of HTML templates used to output the *diff* for a change log entry
     _templates = {
         'add': '''
-
-                {field}
-
-
+            <div class="change change--add">
+                <div class="change__field">{field}</div>
+                <div class="change__values">
+                    <div class="change__value change__value--new">
                         {new_value}
-
-
-
+                    </div>
+                </div>
+            </div>
             ''',
 
         'update': '''
-
-                {field}
-
-
+            <div class="change change--update">
+                <div class="change__field">{field}</div>
+                <div class="change__values">
+                    <div class="change__value change__value--original">
                         {original_value}
-
-
+                    </div>
+                    <div class="change__value change__value--new">
                         {new_value}
-
-
-
+                    </div>
+                </div>
+            </div>
             ''',
 
         'delete': '''
-
-                {field}
-
-
+            <div class="change change--delete">
+                <div class="change__field">{field}</div>
+                <div class="change__values">
+                    <div class="change__value change__value--original">
                         {original_value}
-
-
-
+                    </div>
+                </div>
+            </div>
             '''
         }
 
