@@ -1,5 +1,5 @@
 """
-A set of helpers to simplify the creation of mongodb queries.
+A set of helpers to simplify the creation of MongoDB queries.
 """
 
 import re

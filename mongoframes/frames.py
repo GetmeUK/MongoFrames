@@ -448,7 +448,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         if references:
             cls._dereference([document], references)
 
-        # Add sub-frames to the documents (if required)
+        # Add sub-frames to the document (if required)
         if subs:
             cls._apply_sub_frames([document], subs)
 
@@ -500,22 +500,27 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 continue
 
             # Add sub-frames to the documents
+            raw_subs = []
             for document in documents:
                 value = cls._path_to_value(path, document)
                 if not value:
                     continue
 
                 if isinstance(value, dict):
-                    # Single embedded document
                     if expect_map:
-                        value = {k: sub(**v) for k, v in value.items() \
+                        # Dictionary of embedded documentd
+                        raw_subs += value.values()
+                        value = {k: sub(v) for k, v in value.items() \
                                 if isinstance(v, dict)}
+                    # Single embedded document
                     else:
-                        value = sub(**value)
+                        raw_subs.append(value)
+                        value = sub(value)
 
                 elif isinstance(value, list):
                     # List of embedded documents
-                    value = [sub(**v) for v in value if isinstance(v, dict)]
+                    raw_subs += value
+                    value = [sub(v) for v in value if isinstance(v, dict)]
 
                 else:
                     raise TypeError('Not a supported sub-frame type')
@@ -525,6 +530,10 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 for key in keys[:-1]:
                     child_document = child_document[key]
                 child_document[keys[-1]] = value
+
+            # Apply the projection to the list of sub frames
+            if projection:
+                sub._apply_projection(raw_subs, projection)
 
     @classmethod
     def _dereference(cls, documents, references):
@@ -732,3 +741,28 @@ class SubFrame(_BaseFrame):
     # A set of private fields that will be excluded from the output of
     # `to_json_type`.
     _private_fields = set()
+
+    @classmethod
+    def _apply_projection(cls, documents, projection):
+
+        # Find reference and sub-frame mappings
+        references = {}
+        subs = {}
+        for key, value in deepcopy(projection).items():
+
+            if not isinstance(value, dict):
+                continue
+
+            # Store a reference/sub-frame projection
+            if '$ref' in value:
+                references[key] = value
+            elif '$sub' in value or '$sub.' in value:
+                subs[key] = value
+
+        # Dereference the documents (if required)
+        if references:
+            Frame._dereference(documents, references)
+
+        # Add sub-frames to the documents (if required)
+        if subs:
+            Frame._apply_sub_frames(documents, subs)
