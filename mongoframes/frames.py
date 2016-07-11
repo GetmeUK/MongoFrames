@@ -207,8 +207,6 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         """Insert this document"""
         from mongoframes.queries import to_refs
 
-        assert '_id' not in self._document, "Can't insert documents with `_id`"
-
         # Send insert signal
         signal('insert').send(self.__class__, frames=[self])
 
@@ -256,11 +254,26 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         Update or Insert this document depending on whether it exists or not.
         The presense of an `_id` value in the document is used to determine if
         the document exists.
+
+        NOTE: This method is not the same as specifying the `upsert` flag when
+        calling MongoDB. When called for a document with an `_id` value, this
+        method will call the database to see if a record with that Id exists,
+        if not it will call `insert`, if so it will call `update`. This
+        operation is therefore not atomic and much slower than the equivalent
+        MongoDB operation (due to the extra call).
         """
-        if self._id:
-            self.update(*fields)
-        else:
+
+        # If no `_id` is provided then we insert the document
+        if not self._id:
+            return self.insert()
+
+        # If an `_id` is provided then we need to check if it exists before
+        # performing the `upsert`.
+        #
+        if self.count({'_id': self._id}) == 0:
             self.insert()
+        else:
+            self.update(*fields)
 
     def delete(self):
         """Delete this document"""

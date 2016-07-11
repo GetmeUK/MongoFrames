@@ -1,8 +1,10 @@
+from bson.objectid import ObjectId
 from datetime import datetime, timedelta, timezone
-from pymongo import MongoClient
-import pytest
 from time import sleep
 from unittest.mock import Mock
+
+from pymongo import MongoClient
+import pytest
 
 from mongoframes import *
 
@@ -323,6 +325,19 @@ def test_insert(mongo_client):
     assert burt.lair.inventory.gold == 1000
     assert burt.lair.inventory.skulls == 100
 
+    # Test insert where we specify the `_id` value
+    _id = ObjectId()
+    albert = Dragon(
+        _id=_id,
+        name='Albert',
+        breed='Stone dragon'
+        )
+    albert.insert()
+
+    assert albert._id == _id
+    assert albert.name == 'Albert'
+    assert albert.breed == 'Stone dragon'
+
 def test_update(mongo_client, example_dataset_one):
     """Should update a document on the database"""
 
@@ -372,6 +387,19 @@ def test_upsert(mongo_client):
     burt.reload()
 
     assert burt._id == id
+
+    # Test upsert where we specify the `_id` value
+    _id = ObjectId()
+    albert = Dragon(
+        _id=_id,
+        name='Albert',
+        breed='Stone dragon'
+        )
+    albert.upsert()
+
+    assert albert._id == _id
+    assert albert.name == 'Albert'
+    assert albert.breed == 'Stone dragon'
 
 def test_delete(mongo_client, example_dataset_one):
     """Should delete a document from the database"""
