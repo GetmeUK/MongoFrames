@@ -407,7 +407,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
     @classmethod
     def by_id(cls, id, **kwargs):
         """Get a document by ID"""
-        return cls.one({'_id': ObjectId(id)}, **kwargs)
+        return cls.one({'_id': id}, **kwargs)
 
     @classmethod
     def count(cls, filter=None, **kwargs):
@@ -566,17 +566,14 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 if not value:
                     continue
 
-                if isinstance(value, ObjectId):
-                    ids.add(value)
-
-                elif isinstance(value, list):
+                if isinstance(value, list):
                     ids.update(value)
 
                 elif isinstance(value, dict):
                     ids.update(value.values())
 
                 else:
-                    raise TypeError('Not a supported reference type')
+                    ids.add(value)
 
             # Find the referenced documents
             ref = projection.pop('$ref')
@@ -592,11 +589,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 if not value:
                     continue
 
-                if isinstance(value, ObjectId):
-                    # Single reference
-                    value = frames.get(value, None)
-
-                elif isinstance(value, list):
+                if isinstance(value, list):
                     # List of references
                     value = [frames[id] for id in value if id in frames]
 
@@ -605,7 +598,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                     value = {key: frames.get(id) for key, id in value.items()}
 
                 else:
-                    raise TypeError('Not a supported reference type')
+                    value = frames.get(value, None)
 
                 child_document = document
                 keys = cls._path_to_keys(path)
