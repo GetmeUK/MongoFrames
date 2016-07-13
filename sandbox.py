@@ -1,5 +1,6 @@
 from mongoframes import *
 from mongoframes.factory import *
+from mongoframes.factory.makers import DateBetween, Sequence
 from pymongo import MongoClient
 
 
@@ -47,6 +48,10 @@ User.get_collection().drop()
 
 # Create a factory
 
+factory = Factory()
+
+# assemble
+# populate
 
 
 # Produce fake documents using the factory
@@ -54,4 +59,7 @@ User.get_collection().drop()
 
 # Factorys
 # Blueprints
+    # Associations
 # Quotas
+# Makers
+

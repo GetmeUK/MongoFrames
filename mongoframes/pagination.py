@@ -56,6 +56,8 @@ class Page(object):
     def __len__(self):
         return len(self._items)
 
+    # Read-only properties
+
     @property
     def items(self):
         """Return a list of results for the page"""
@@ -79,6 +81,8 @@ class Page(object):
         Return the page number for the previous page or None if there isn't one.
         """
         return self._prev
+
+    # Public methods
 
     def offset(self, item):
         """Return the offset for an item in the page"""
@@ -165,6 +169,8 @@ class Paginator(object):
     def __iter__(self):
         for page_number in self._page_numbers:
             yield self[page_number]
+
+    # Read-only properties
 
     @property
     def item_count(self):
