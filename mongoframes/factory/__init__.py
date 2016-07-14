@@ -1,3 +1,5 @@
+import copy
+from blinker import signal
 
 __all__ = ['Factory']
 
@@ -8,35 +10,63 @@ class Factory:
     Production of fake data is a two stage process:
 
     Assembly (see `assemble`)
-    :   A `Quota` of documents is assembled based on a set of `Blueprint`s.
+    :   A `Quota` of documents is assembled based on a `Blueprint`.
 
         At this stage the documents contain a mixture of static and dynamic
         data. Dynamic data is data that will be transformed during population,
         for example a field might contain a value of `'now,tomorrow'` which on
         population will be converted to a date/time between now and tomorrow.
 
-        Once assembled the generated documents are returned as a dictionary with
-        the following structure;
-
-            {
-                'blueprint_name': [...documents...],
-                ...
-            }
-
-        and can be either used immediately to populate the database or saved out
-        as a template for populating the database in future (for example when
-        building a set of test data).
+        Once assembled the generated documents are returned as a list and can be
+        either used immediately to populate the database or saved out as a
+        template for populating the database in future (for example when
+            building a set of test data).
 
     Population (see `populate`)
-    :   A database is populated based on a set of `Blueprint`s and pre-assembled
+    :   A database is populated based on a `Blueprint` and pre-assembled list of
         documents.
 
         During this stage dynamic data is converted to static data suitable for
-        inserting in the database.
+        inserting in the database (this process is call finishing).
+
+        Prior to and after inserting the a document into the database the
+        `factory_insert` and `factory_inserted` events are triggered to allow
+        `Frame` classes to modify the insert behaviour for factories.
     """
 
-    def assemble(self, blueprints, quota):
-        """Assemble a quota of fake data"""
+    def __init__(self, presets=None):
+        # A list of presets for the factory
+        self._presets = presets or []
 
-    def populate(self, blueprints, data):
-        """Populate the database with fake data"""
+    # Read-only properties
+
+    @property
+    def presets(self):
+        return self._presets
+
+    # Public methods
+
+    def assemble(self, quota):
+        """Assemble a quota of fake documents"""
+        documents = []
+        for i in range(0, quota.quantity):
+            documents.append(quota.blueprint.assemble(self.presets))
+        return documents
+
+    def finish(self, blueprint, documents):
+        """Apply finishing to a list of pre-assembled documents"""
+
+        # Finish the documents
+        documents = []
+        for document in documents:
+            documents.append(blueprint.finish(document))
+
+    def populate(self, blueprint, documents):
+        """Populate the database with fake documents"""
+
+        documents = self.finish(documents)
+
+        # Insert the documents (only if the frame class
+        signal('factory_insert').send(blueprint.frame_cls, documents=documents)
+        frames = blueprint.frame_cls.insert_many(documents)
+        signal('factory_inserted').send(blueprint.frame_cls, frames=frames)

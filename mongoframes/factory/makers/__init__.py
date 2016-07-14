@@ -11,13 +11,16 @@ class Maker:
     A base class for all Maker classes.
     """
 
-    dynamic = False
+    def __call__(self, *args):
+        if args:
+            return self._dynamic(*args)
+        return self._static()
 
-    def make_static(self):
+    def _static(self):
         raise NotImplemented()
 
-    def make_dynamic(self):
-        raise NotImplemented()
+    def _dynamic(self):
+        pass
 
 
 class Sequence(Maker):
@@ -29,7 +32,7 @@ class Sequence(Maker):
         self._prefix = prefix
         self._offset = start_from
 
-    def make_static(self):
+    def _static(self):
         value = "{0._prefix}{0._offset}".format(self)
         self._offset += 1
         return value
@@ -74,10 +77,10 @@ class DateBetween(Maker):
 
         return d
 
-    def make_static(self):
+    def _static(self):
         return json.dumps([str(self._min_date), str(self._max_date)])
 
-    def make_dynamic(self, args):
+    def _dynamic(self, args):
         [min_date, max_date] = json.loads(args)
         min_date = parse_date_obj(min_date)
         max_date = parse_date_obj(max_date)

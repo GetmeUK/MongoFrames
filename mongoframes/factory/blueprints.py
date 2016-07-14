@@ -1,62 +1,6 @@
-import re
+from .presets import Preset
 
-__all__ = [
-    'Association',
-    'Blueprint'
-    ]
-
-
-class Association:
-    """
-    Associations match field names to makers (any function that can produce a
-    value for a field). They provide default makers for fields that are not
-    directly defined for a `Blueprint`.
-
-    The pattern used to match an association with a maker should be a compiled
-    regular expression or a string. If a string is provided then the match must
-    match exactly.
-    """
-
-    def __init__(self, pattern, maker):
-
-        # The pattern used to associate a field name with a maker
-        self._pattern = pattern
-
-        # The maker that will be used to produce values for this field
-        self._maker = maker
-
-    # Read-only properties
-
-    @property
-    def maker(self):
-        return self._maker
-
-    @property
-    def pattern(self):
-        return self._pattern
-
-    # Public methods
-
-    def match(self, field_name):
-        """
-        Return True if the given field name matches the associations pattern.
-        """
-        if isinstance(self._pattern, re.RegexObject):
-            return self._pattern.match(field_name)
-
-        return self._pattern == field_name
-
-    # Class methods
-
-    @classmethod
-    def find(cls, associations, field_name):
-        """
-        Search a list of associations and return the first to match the specified
-        field name or None if there are not matches.
-        """
-        for association in associations:
-            if assocation.match(field_name):
-                return association
+__all__ = ['Blueprint']
 
 
 class Blueprint:
@@ -65,23 +9,59 @@ class Blueprint:
     collection represented by a `Frame` class.
     """
 
-    def __init__(self, frame_cls, fields=None, associations=None):
+    def __init__(self, frame_cls, instructions=None):
 
         # The Frame class the blueprint is for
         self._frame_cls = frame_cls
 
-        # A table of fields and the instructions on how to make values for each
-        # of them.
-        self._fields = fields or {}
+        # A table of fields names mapped to makers
+        self._instructions = instructions or {}
 
-        # Associations
-        self._associations = associations or []
+    # Read-only properties
 
-    def assemble(self):
-        """Assemble a single document using the blueprint"""
+    def frame_cls():
+        return self._frame_cls
 
-    def finish(self, documents):
+    # Public methods
+
+    def assemble(self, presets=[]):
+        """Assemble a single document using the blueprint and presets"""
+        document = {}
+        for field_name in self._frame_cls._fields:
+
+            # Use a dedicated instruction if we have one
+            if field_name in self._instructions:
+                document[field_name] = self._instructions[field_name]()
+                continue
+
+            # Check for a preset
+            preset = Preset.find(presets, field_name)
+            if preset:
+                document[field_name] = preset.maker()
+                continue
+
+        return document
+
+    def finish(self, document, presets=None):
         """
-        Take a pre-assembled document and return a copy of the document with
-        all dynamic values converted to static values.
+        Take a pre-assembled document and convert all dynamic values to static
+        values.
         """
+        presets = presets or []
+
+        document_copy = {}
+        for field_name, value in document.items():
+
+            # Use a dedicated instruction if we have one
+            if field_name in self._instructions:
+                maker = self._instructions[field_name]
+                document_copy[field_name] = maker(value)
+                continue
+
+            # Check for a preset
+            preset = Preset.find(presets, field_name)
+            if preset:
+                document_copy[field_name] = preset.maker(value)
+                continue
+
+        return document_copy

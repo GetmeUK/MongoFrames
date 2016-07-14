@@ -1,6 +1,9 @@
 from mongoframes import *
-from mongoframes.factory import *
-from mongoframes.factory.makers import DateBetween, Sequence
+from mongoframes.factory import Factory
+from mongoframes.factory.blueprints import Blueprint
+from mongoframes.factory.makers import  Sequence
+from mongoframes.factory.presets import Preset
+from mongoframes.factory.quotas import Quota
 from pymongo import MongoClient
 
 
@@ -50,16 +53,12 @@ User.get_collection().drop()
 
 factory = Factory()
 
-# assemble
-# populate
+blueprint = Blueprint(User, {
+    'username': Sequence('user-')
+    })
 
+quota = Quota(blueprint, 10)
 
-# Produce fake documents using the factory
+documents = factory.assemble(quota)
 
-
-# Factorys
-# Blueprints
-    # Associations
-# Quotas
-# Makers
-
+print(documents)
