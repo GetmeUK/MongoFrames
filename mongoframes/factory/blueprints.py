@@ -24,8 +24,10 @@ class Blueprint:
 
     # Public methods
 
-    def assemble(self, presets=[]):
+    def assemble(self, presets=None):
         """Assemble a single document using the blueprint and presets"""
+        presets = presets or []
+
         document = {}
         for field_name in self._frame_cls._fields:
 
@@ -67,3 +69,20 @@ class Blueprint:
                 continue
 
         return document_copy
+
+    def reset(self, presets=None):
+        """
+        Reset the blueprint. Blueprints are typically reset before being used to
+        assemble a quota of documents. Resetting a blueprint will in turn reset
+        all the makers for the blueprint allowing internal counters and a like
+        to be reset.
+        """
+        presets = presets or []
+
+        # Reset instructions
+        for maker in self._instructions.values():
+            maker.reset()
+
+        # Check for a preset
+        for preset in presets:
+            preset.maker.reset()

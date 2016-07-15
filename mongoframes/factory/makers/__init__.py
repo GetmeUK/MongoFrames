@@ -8,10 +8,14 @@ import faker
 __all__ = [
     'Faker',
     'Lambda',
-
-    # @@ REMOVE
-    'DateBetween'
+    'SubFactory',
+    'Unique'
     ]
+
+
+# @@
+# - ListOf
+# - DictOf
 
 
 class Maker:
@@ -23,6 +27,10 @@ class Maker:
         if args:
             return self._finish(*args)
         return self._assemble()
+
+    def reset(self):
+        """Reset the maker instance"""
+        pass
 
     def _assemble(self):
         return None
@@ -38,32 +46,31 @@ class Maker:
         return Maker._fake
 
 
-
 class Faker(Maker):
     """
     Use any faker provider to generate a value (see
     http://fake-factory.readthedocs.io/)
     """
 
-    def __init__(self, provider, lazy=False, **kwargs):
+    def __init__(self, provider, assembler=True, **kwargs):
 
         # The provider that will be used to generate the value
         self._provider = provider
 
-        # Flag indicating if the providers should be called in _assemble (False)
-        # or _finish (True).
-        self._lazy = lazy
+        # Flag indicating if the providers should be called in _assemble (True)
+        # or _finish (False).
+        self._assembler = assembler
 
         # The keyword arguments for the provider
         self._kwargs = kwargs
 
     def _assemble(self):
-        if self._lazy:
+        if not self._assembler:
             return None
         return getattr(self.get_fake(), self._provider)(**self._kwargs)
 
     def _finish(self, value):
-        if not self._lazy:
+        if self._assembler:
             return value
         return getattr(self.get_fake(), self._provider)(**self._kwargs)
 
@@ -73,78 +80,109 @@ class Lambda(Maker):
     Use a lambda function to generate a value.
     """
 
-    def __init__(self, func, lazy=False):
+    def __init__(self, func, assembler=False):
 
         # The function to call
         self._func = func
 
-        # Flag indicating if the lambda should be called in _assemble (False)
-        # or _finish (True).
-        self._lazy = lazy
+        # Flag indicating if the providers should be called in _assemble (True)
+        # or _finish (False).
+        self._assembler = assembler
 
     def _assemble(self):
-        if self._lazy:
+        if not self._assembler:
             return None
         return self._func()
 
     def _finish(self, value):
-        if not self._lazy:
+        if self._assembler:
             return value
         return self._func()
 
 
-# @@ Need a mechanism to
-# - reference other documents,
-# - keep things unique
-# - generate sub-documents
-
-
-
-# @@ Move or remove date_between
-
-class DateBetween(Maker):
+class SubFactory(Maker):
     """
-    Return a date between two points.
+    A maker that makes sub-documents.
     """
 
-    def __init__(self, min_date, max_date):
-        self._min_date = min_date
-        self._max_date = max_date
+    def __init__(self, blueprint, presets=None):
 
-    def parse_date_obj(self, d):
-        # Parse the date string
-        result = re.match(
-            '(today|tomorrow|yesterday)((\-|\+)(\d+)){0,1}',
-            d
-            )
-        assert result, 'Not a valid date string'
+        # The blueprint to produce
+        self._blueprint = blueprint
 
-        # Determine the base date
-        if result.groups()[0] == 'today':
-            d = datetime.date.today()
+        # A list of presets to apply with the blueprint
+        self._presets = presets or []
 
-        elif result.groups()[0] == 'tomorrow':
-            d = datetime.date.today() - datetime.timedelta(days=1)
-
-        elif result.groups()[0] == 'yesterday':
-            d = datetime.date.today() + datetime.timedelta(days=1)
-
-        # Add any offset
-        if result.groups()[1]:
-            op = result.groups()[2]
-            days = int(result.groups()[3])
-            if op == '+':
-                d += datetime.timedelta(days=days)
-            else:
-                d -= datetime.timedelta(days=days)
-
-        return d
+    def reset(self):
+        """Reset the associated blueprint and presets"""
+        self._blueprint.reset(self._presets)
 
     def _assemble(self):
-        return None
+        return self._blueprint.assemble(self._presets)
 
     def _finish(self, value):
-        min_date = self.parse_date_obj(self._min_date)
-        max_date = self.parse_date_obj(self._max_date)
-        seconds = random.randint(0, int((max_date - min_date).total_seconds()))
-        return min_date + datetime.timedelta(seconds=seconds)
+        return self._blueprint.finish(value, self._presets)
+
+
+class Unique(Maker):
+    """
+    Ensure that unique valeus are generated.
+    """
+
+    def __init__(self,
+        maker,
+        existing_values=None,
+        assembler=False,
+        max_attempts=100
+        ):
+
+        # The maker that will generate values
+        self._maker = maker
+
+        # A set of existing values
+        self._existing_values = existing_values or set([])
+
+        # Flag indicating if the providers should be called in _assemble (True)
+        # or _finish (False).
+        self._assembler = assembler
+
+        # A set of used values
+        self._used_values = set(self._existing_values)
+
+        # The maximum number of attempts to generate unique data that should be
+        # performed.
+        self._max_attempts = max_attempts
+
+    def reset(self):
+        """Reset the set of used values"""
+        self._used_values = set(self._existing_values)
+
+    def _get_unique(self, *args):
+        """Generate a unique value using the assigned maker"""
+
+        # Generate a unique values
+        value = ''
+        attempts = 0
+        while True:
+            attempts += 1
+            value = self._maker(*args)
+            if value not in self._used_values:
+                break
+
+            assert attempts < self._max_attempts, \
+                'Too many attempts to generate a unique value'
+
+        # Add the value to the set of used values
+        self._used_values.add(value)
+
+        return value
+
+    def _assemble(self):
+        if not self._assembler:
+            return self._maker()
+
+    def _finish(self, value):
+        if self._assembler:
+            return self.maker(value)
+
+        return self._get_unique(value)

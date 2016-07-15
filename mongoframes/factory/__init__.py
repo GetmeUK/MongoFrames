@@ -46,15 +46,23 @@ class Factory:
 
     # Public methods
 
-    def assemble(self, quota):
+    def assemble(self, blueprint, quota):
         """Assemble a quota of fake documents"""
+
+        # Reset the blueprint
+        blueprint.reset()
+
+        # Assemble the documents
         documents = []
-        for i in range(0, quota.quantity):
-            documents.append(quota.blueprint.assemble(self.presets))
+        for i in range(0, int(quota)):
+            documents.append(blueprint.assemble(self.presets))
         return documents
 
     def finish(self, blueprint, documents):
         """Apply finishing to a list of pre-assembled documents"""
+
+        # Reset the blueprint
+        blueprint.reset()
 
         # Finish the documents
         finished = []
@@ -66,11 +74,15 @@ class Factory:
     def populate(self, blueprint, documents):
         """Populate the database with fake documents"""
 
+        # Finish the documents
         documents = self.finish(documents)
 
+        # Convert the documents to frame instances
+        frames = blueprint.frame_cls._ensure_frames(documents)
+
         # Insert the documents (only if the frame class
-        signal('factory_insert').send(blueprint.frame_cls, documents=documents)
-        frames = blueprint.frame_cls.insert_many(documents)
+        signal('factory_insert').send(blueprint.frame_cls, frames=frames)
+        frames = blueprint.frame_cls.insert_many(frames)
         signal('factory_inserted').send(blueprint.frame_cls, frames=frames)
 
     #def seed

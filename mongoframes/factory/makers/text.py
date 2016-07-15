@@ -6,6 +6,10 @@ __all__ = [
     ]
 
 
+# @@
+# - Nice text output
+
+
 class Sequence(Maker):
     """
     Generate a sequence of values where a number is inserted into a template.

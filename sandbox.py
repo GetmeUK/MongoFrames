@@ -1,3 +1,7 @@
+import random
+
+from pymongo import MongoClient
+
 from mongoframes import *
 from mongoframes.factory import *
 from mongoframes.factory.blueprints import *
@@ -5,8 +9,6 @@ from mongoframes.factory.makers import *
 from mongoframes.factory.makers.text import *
 from mongoframes.factory.presets import *
 from mongoframes.factory.quotas import *
-from mongoframes.factory.quantities import *
-from pymongo import MongoClient
 
 
 # Set up a connection
@@ -30,7 +32,8 @@ class Story(Frame):
         'title',
         'url',
         'body',
-        'votes'
+        'votes',
+        'score'
         }
 
 
@@ -41,6 +44,14 @@ class Comments(Frame):
         'story',
         'body',
         'votes'
+        }
+
+
+class Vote(SubFrame):
+
+    _fields = {
+        'user',
+        'up'
         }
 
 
@@ -55,15 +66,24 @@ User.get_collection().drop()
 
 factory = Factory()
 
-blueprint = Blueprint(Story, {
-    'author': Faker('user_name'),
-    'title': Sequence('Story number {index}'),
-    'body': Lorem('sentence', RandomQuantity(1, 3)),
-    'votes': Lambda(lambda: 1)
+voter_blueprint = Blueprint(Vote, {
+    'user': Unique(Faker('user_name')),
+    'up': Faker('boolean', chance_of_getting_true=25)
     })
 
-quota = Quota(blueprint, 10)
+story_blueprint = Blueprint(Story, {
+    'author': Unique(Faker('user_name')),
+    'title': Sequence('Story number {index}'),
+    'body': Lorem('sentence', RandomQuota(1, 3)),
+    'votes': SubFactory(voter_blueprint),
+    'score': Lambda(lambda: random.randint(0, 10))
+    })
 
-documents = factory.assemble(quota)
-documents = factory.finish(blueprint, documents)
+documents = factory.assemble(story_blueprint, 10)
+documents = factory.finish(story_blueprint, documents)
 print(documents)
+
+# Consider support for:
+# - Look to drop quota's as a class, id doesn't do anything, move quantities in
+#   that module.
+# - image maker (e.g folder of product, accommodation, people images)
