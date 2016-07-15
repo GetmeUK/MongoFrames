@@ -1,9 +1,11 @@
 from mongoframes import *
-from mongoframes.factory import Factory
-from mongoframes.factory.blueprints import Blueprint
-from mongoframes.factory.makers import  Sequence
-from mongoframes.factory.presets import Preset
-from mongoframes.factory.quotas import Quota
+from mongoframes.factory import *
+from mongoframes.factory.blueprints import *
+from mongoframes.factory.makers import *
+from mongoframes.factory.makers.text import *
+from mongoframes.factory.presets import *
+from mongoframes.factory.quotas import *
+from mongoframes.factory.quantities import *
 from pymongo import MongoClient
 
 
@@ -53,12 +55,15 @@ User.get_collection().drop()
 
 factory = Factory()
 
-blueprint = Blueprint(User, {
-    'username': Sequence('user-')
+blueprint = Blueprint(Story, {
+    'author': Faker('user_name'),
+    'title': Sequence('Story number {index}'),
+    'body': Lorem('sentence', RandomQuantity(1, 3)),
+    'votes': Lambda(lambda: 1)
     })
 
 quota = Quota(blueprint, 10)
 
 documents = factory.assemble(quota)
-
+documents = factory.finish(blueprint, documents)
 print(documents)

@@ -1,6 +1,6 @@
 import re
 
-__all__ = ['Factory']
+__all__ = ['Preset']
 
 
 class Preset:

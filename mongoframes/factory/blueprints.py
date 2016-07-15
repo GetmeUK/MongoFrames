@@ -31,7 +31,9 @@ class Blueprint:
 
             # Use a dedicated instruction if we have one
             if field_name in self._instructions:
-                document[field_name] = self._instructions[field_name]()
+                maker = self._instructions[field_name]
+                if maker:
+                    document[field_name] = maker()
                 continue
 
             # Check for a preset

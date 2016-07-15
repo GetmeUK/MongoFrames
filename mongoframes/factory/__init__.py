@@ -57,9 +57,11 @@ class Factory:
         """Apply finishing to a list of pre-assembled documents"""
 
         # Finish the documents
-        documents = []
+        finished = []
         for document in documents:
-            documents.append(blueprint.finish(document))
+            finished.append(blueprint.finish(document))
+
+        return finished
 
     def populate(self, blueprint, documents):
         """Populate the database with fake documents"""
@@ -70,3 +72,7 @@ class Factory:
         signal('factory_insert').send(blueprint.frame_cls, documents=documents)
         frames = blueprint.frame_cls.insert_many(documents)
         signal('factory_inserted').send(blueprint.frame_cls, frames=frames)
+
+    #def seed
+    #
+    # random, faker

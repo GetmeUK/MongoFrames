@@ -1,9 +1,17 @@
 import datetime
-import json
+import jsonpickle
 import random
 import re
 
-__all__ = ['Maker']
+import faker
+
+__all__ = [
+    'Faker',
+    'Lambda',
+
+    # @@ REMOVE
+    'DateBetween'
+    ]
 
 
 class Maker:
@@ -13,30 +21,86 @@ class Maker:
 
     def __call__(self, *args):
         if args:
-            return self._dynamic(*args)
-        return self._static()
+            return self._finish(*args)
+        return self._assemble()
 
-    def _static(self):
-        raise NotImplemented()
+    def _assemble(self):
+        return None
 
-    def _dynamic(self):
-        pass
-
-
-class Sequence(Maker):
-    """
-    Generate a sequence of values postfixed by a number.
-    """
-
-    def __init__(self, prefix, start_from=1):
-        self._prefix = prefix
-        self._offset = start_from
-
-    def _static(self):
-        value = "{0._prefix}{0._offset}".format(self)
-        self._offset += 1
+    def _finish(self, value):
         return value
 
+    @staticmethod
+    def get_fake():
+        """Return a shared faker factory used to generate fake data"""
+        if not hasattr(Maker, '_fake'):
+            Maker._fake = faker.Factory.create()
+        return Maker._fake
+
+
+
+class Faker(Maker):
+    """
+    Use any faker provider to generate a value (see
+    http://fake-factory.readthedocs.io/)
+    """
+
+    def __init__(self, provider, lazy=False, **kwargs):
+
+        # The provider that will be used to generate the value
+        self._provider = provider
+
+        # Flag indicating if the providers should be called in _assemble (False)
+        # or _finish (True).
+        self._lazy = lazy
+
+        # The keyword arguments for the provider
+        self._kwargs = kwargs
+
+    def _assemble(self):
+        if self._lazy:
+            return None
+        return getattr(self.get_fake(), self._provider)(**self._kwargs)
+
+    def _finish(self, value):
+        if not self._lazy:
+            return value
+        return getattr(self.get_fake(), self._provider)(**self._kwargs)
+
+
+class Lambda(Maker):
+    """
+    Use a lambda function to generate a value.
+    """
+
+    def __init__(self, func, lazy=False):
+
+        # The function to call
+        self._func = func
+
+        # Flag indicating if the lambda should be called in _assemble (False)
+        # or _finish (True).
+        self._lazy = lazy
+
+    def _assemble(self):
+        if self._lazy:
+            return None
+        return self._func()
+
+    def _finish(self, value):
+        if not self._lazy:
+            return value
+        return self._func()
+
+
+# @@ Need a mechanism to
+# - reference other documents,
+# - keep things unique
+# - generate sub-documents
+
+
+
+# @@ Move or remove date_between
 
 class DateBetween(Maker):
     """
@@ -47,7 +111,7 @@ class DateBetween(Maker):
         self._min_date = min_date
         self._max_date = max_date
 
-    def parse_date_obj(d):
+    def parse_date_obj(self, d):
         # Parse the date string
         result = re.match(
             '(today|tomorrow|yesterday)((\-|\+)(\d+)){0,1}',
@@ -67,9 +131,8 @@ class DateBetween(Maker):
 
         # Add any offset
         if result.groups()[1]:
-            op = result.groups()[1][0]
-            days = int(result.groups()[1][1])
-
+            op = result.groups()[2]
+            days = int(result.groups()[3])
             if op == '+':
                 d += datetime.timedelta(days=days)
             else:
@@ -77,12 +140,11 @@ class DateBetween(Maker):
 
         return d
 
-    def _static(self):
-        return json.dumps([str(self._min_date), str(self._max_date)])
+    def _assemble(self):
+        return None
 
-    def _dynamic(self, args):
-        [min_date, max_date] = json.loads(args)
-        min_date = parse_date_obj(min_date)
-        max_date = parse_date_obj(max_date)
+    def _finish(self, value):
+        min_date = self.parse_date_obj(self._min_date)
+        max_date = self.parse_date_obj(self._max_date)
         seconds = random.randint(0, int((max_date - min_date).total_seconds()))
         return min_date + datetime.timedelta(seconds=seconds)

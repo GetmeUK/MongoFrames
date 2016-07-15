@@ -83,6 +83,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         'blinker>=1.4',
+        'fake-factory>=0.5.9',
         'pymongo>=3'
         ],
 
