@@ -56,6 +56,7 @@ class Factory:
         documents = []
         for i in range(0, int(quota)):
             documents.append(blueprint.assemble(self.presets))
+
         return documents
 
     def finish(self, blueprint, documents):
@@ -67,7 +68,7 @@ class Factory:
         # Finish the documents
         finished = []
         for document in documents:
-            finished.append(blueprint.finish(document))
+            finished.append(blueprint.finish(document, self.presets))
 
         return finished
 
@@ -75,7 +76,7 @@ class Factory:
         """Populate the database with fake documents"""
 
         # Finish the documents
-        documents = self.finish(documents)
+        documents = self.finish(blueprint, documents)
 
         # Convert the documents to frame instances
         frames = blueprint.frame_cls._ensure_frames(documents)

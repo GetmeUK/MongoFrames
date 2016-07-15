@@ -1,4 +1,4 @@
-from . import Maker
+from mongoframes.factory.makers import Maker
 
 __all__ = [
     'Lorem',

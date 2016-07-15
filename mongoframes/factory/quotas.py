@@ -1,7 +1,8 @@
 import random
 
 __all__ = [
-    'RandomQuota'
+    'Gauss',
+    'Random'
     ]
 
 
@@ -25,7 +26,23 @@ class Quota:
         return float(self._quantity)
 
 
-class RandomQuota:
+class Gauss(Quota):
+    """
+    Return a random quota using a Gaussian distrobution.
+    """
+
+    def __init__(self, mu, sigma):
+        self._mu = mu
+        self._sigma = sigma
+
+    def __int__(self):
+        return int(float(self))
+
+    def __float__(self):
+        return random.gauss(self._mu, self._sigma)
+
+
+class Random(Quota):
     """
     Return a random quota between two values.
     """

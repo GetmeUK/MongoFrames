@@ -1,13 +1,15 @@
-import datetime
-import jsonpickle
 import random
-import re
 
 import faker
+import jsonpickle
+
+from mongoframes.queries import Q
 
 __all__ = [
     'Faker',
     'Lambda',
+    'ListOf',
+    'Reference',
     'SubFactory',
     'Unique'
     ]
@@ -16,6 +18,7 @@ __all__ = [
 # @@
 # - ListOf
 # - DictOf
+# - OneOf (pick a maker)
 
 
 class Maker:
@@ -100,6 +103,50 @@ class Lambda(Maker):
         return self._func()
 
 
+class ListOf(Maker):
+    """
+    Make a list of values using another maker to generate each value.
+    """
+
+    def __init__(self, maker, quantity):
+
+        # The maker used to generate each value in the list
+        self._maker = maker
+
+        # The number of list items to generate
+        self._quantity = quantity
+
+    def _assemble(self):
+        quantity = int(self._quantity)
+        return [self._maker() for i in range(0, quantity)]
+
+    def _finish(self, value):
+        return [self._maker(v) for v in value]
+
+
+class Reference(Maker):
+    """
+    Make a reference to another document.
+    """
+
+    def __init__(self, frame_cls, field_name, values):
+
+        # The `Frame` class that will be used to obtain the referenced document
+        self._frame_cls = frame_cls
+
+        # The field name that will be used to query for the referenced document
+        self._field_name = field_name
+
+        # The list of values that can be used to select a reference
+        self._values = values
+
+    def _assemble(self):
+        return random.choice(self._values)
+
+    def _finish(self, value):
+        return self._frame_cls.one(Q[self._field_name] == value)
+
+
 class SubFactory(Maker):
     """
     A maker that makes sub-documents.
@@ -126,14 +173,14 @@ class SubFactory(Maker):
 
 class Unique(Maker):
     """
-    Ensure that unique valeus are generated.
+    Ensure that unique values are generated.
     """
 
     def __init__(self,
         maker,
         existing_values=None,
         assembler=False,
-        max_attempts=100
+        max_attempts=1000
         ):
 
         # The maker that will generate values

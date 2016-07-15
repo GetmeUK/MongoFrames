@@ -1,4 +1,4 @@
-from .presets import Preset
+from mongoframes.factory.presets import Preset
 
 __all__ = ['Blueprint']
 
@@ -19,7 +19,8 @@ class Blueprint:
 
     # Read-only properties
 
-    def frame_cls():
+    @property
+    def frame_cls(self):
         return self._frame_cls
 
     # Public methods

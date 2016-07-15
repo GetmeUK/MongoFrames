@@ -1,5 +1,3 @@
-import re
-
 __all__ = ['Preset']
 
 
@@ -38,7 +36,8 @@ class Preset:
         """
         Return True if the given field name matches the preset's pattern.
         """
-        if isinstance(self._pattern, re.RegexObject):
+
+        if hasattr(self._pattern, 'match'):
             return self._pattern.match(field_name)
 
         return self._pattern == field_name
