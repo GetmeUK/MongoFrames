@@ -85,7 +85,3 @@ class Factory:
         signal('factory_insert').send(blueprint.frame_cls, frames=frames)
         frames = blueprint.frame_cls.insert_many(frames)
         signal('factory_inserted').send(blueprint.frame_cls, frames=frames)
-
-    #def seed
-    #
-    # random, faker

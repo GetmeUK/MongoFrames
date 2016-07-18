@@ -1,7 +1,6 @@
 import random
 
 import faker
-import jsonpickle
 
 from mongoframes.queries import Q
 
@@ -13,12 +12,6 @@ __all__ = [
     'SubFactory',
     'Unique'
     ]
-
-
-# @@
-# - ListOf
-# - DictOf
-# - OneOf (pick a maker)
 
 
 class Maker:

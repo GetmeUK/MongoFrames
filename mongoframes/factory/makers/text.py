@@ -1,31 +1,13 @@
+import random
+import re
+
 from mongoframes.factory.makers import Maker
 
 __all__ = [
     'Lorem',
+    'Markov'
     'Sequence'
     ]
-
-
-# @@
-# - Nice text output
-
-
-class Sequence(Maker):
-    """
-    Generate a sequence of values where a number is inserted into a template.
-    The template should specify an index value, for example:
-
-        "prefix-{index}"
-    """
-
-    def __init__(self, template, start_from=1):
-        self._template = template
-        self._index = start_from
-
-    def _assemble(self):
-        value = self._template.format(index=self._index)
-        self._index += 1
-        return value
 
 
 class Lorem(Maker):
@@ -42,25 +24,206 @@ class Lorem(Maker):
     and then the quantity;
 
     - paragraphs in a body,
-    - sentances in a paragraph,
+    - sentences in a paragraph,
     - words in a scentance.
     """
 
     def __init__(self, text_type, quantity):
+        # The type of text structure to generate
         self._text_type = text_type
+
+        # The quantity of text to generate
         self._quantity = quantity
 
         assert self._text_type in ['body', 'paragraph', 'sentence'], \
-            'Not a supported text type'
+                'Not a supported text type'
 
     def _assemble(self):
         quantity = int(self._quantity)
 
         if self._text_type == 'body':
-            return self.get_fake().paragraphs(nb=quantity)
+            return '\n'.join(self.get_fake().paragraphs(nb=quantity))
 
         if self._text_type == 'paragraph':
             return self.get_fake().paragraphs(nb_sentences=quantity)
 
         if self._text_type == 'sentence':
             return self.get_fake().sentence(nb_words=quantity)
+
+
+class Markov(Maker):
+    """
+    Generate random amounts of text based using a Markov chain.
+
+    To determine the amount of text generated you need to specify the type of
+    text structure to generate;
+
+    - body,
+    - paragraph,
+    - sentence
+
+    and then the quantity;
+
+    - paragraphs in a body,
+    - sentences in a paragraph,
+    - words in a scentance.
+
+    This code is heavily based on (lifted from) the code presented in this
+    article by Shabda Raaj:
+    http://agiliq.com/blog/2009/06/generating-pseudo-random-text-with-markov-chains-u/
+    """
+
+    _dbs = {}
+
+    def __init__(self, db, text_type, quantity):
+        # The database to generate the text from
+        self._db = db
+
+        assert db in self.__class__._dbs, 'Text database does not exist'
+
+        # The type of text structure to generate
+        self._text_type = text_type
+
+        # The quantity of text to generate
+        self._quantity = quantity
+
+        assert self._text_type in ['body', 'paragraph', 'sentence'], \
+                'Not a supported text type'
+
+    # Public methds
+
+    @property
+    def database(self):
+        return self.__class__._dbs[self._db]
+
+    # Private methods
+
+    def _assemble(self):
+        quantity = int(self._quantity)
+
+        if self._text_type == 'body':
+            return self._body(quantity)
+
+        if self._text_type == 'paragraph':
+            return self._paragraph(quantity)
+
+        if self._text_type == 'sentence':
+            return self._sentence(quantity)
+
+    def _body(self, paragraphs):
+        """Generate a body of text"""
+        body = []
+        for i in range(paragraphs):
+            paragraph = self._paragraph(random.randint(1, 10))
+            body.append(paragraph)
+
+        return '\n'.join(body)
+
+    def _paragraph(self, sentences):
+        """Generate a paragraph"""
+        paragraph = []
+        for i in range(sentences):
+            sentence = self._sentence(random.randint(5, 16))
+            paragraph.append(sentence)
+
+        return ' '.join(paragraph)
+
+    def _sentence(self, words):
+        """Generate a sentence"""
+        db = self.database
+
+        # Generate 2 words to start a sentence with
+        seed = random.randint(0, db['word_count'] - 3)
+        seed_word, next_word = db['words'][seed], db['words'][seed + 1]
+        w1, w2 = seed_word, next_word
+
+        # Generate the complete sentence
+        sentence = []
+        for i in range(words):
+            sentence.append(w1)
+            w1, w2 = w2, random.choice(db['freqs'][(w1, w2)])
+        sentence.append(w2)
+
+        # Make the sentence respectable
+        sentence = ' '.join(sentence)
+
+        # Capitalize the sentence
+        sentence = sentence.capitalize()
+
+        # Remove additional sentence ending puntuation
+        sentence = sentence.replace('.', '')
+        sentence = sentence.replace('!', '')
+        sentence = sentence.replace('?', '')
+        sentence = sentence.replace(':', '')
+
+        # Remove quote tags
+        sentence = sentence.replace('.', '')
+        sentence = sentence.replace('!', '')
+        sentence = sentence.replace('?', '')
+        sentence = sentence.replace(':', '')
+        sentence = sentence.replace('"', '')
+        sentence = sentence.replace("'", '')
+
+        # If the last character is not an alphanumeric remove it
+        sentence = re.sub('[^a-zA-Z0-9]$', '', sentence)
+
+        # Remove excess space
+        sentence = re.sub('\s+', ' ', sentence)
+
+        # Add a full stop
+        sentence += '.'
+
+        return sentence
+
+    @classmethod
+    def init_word_db(cls, name, text):
+        """Initialize the database of words for the maker"""
+        words = [w.strip() for w in text.split(' ') if w.strip()]
+        freqs = {}
+
+        assert len(words) > 2, \
+                'Database text sources must contain 3 or more words.'
+
+        # Build the database
+        for i in range(len(words) - 2):
+
+            # Create a triplet from the current word
+            w1 = words[i]
+            w2 = words[i + 1]
+            w3 = words[i + 2]
+
+            # Add the triplet to the database
+            key = (w1, w2)
+            if key in freqs:
+                freqs[key].append(w3)
+            else:
+                freqs[key] = [w3]
+
+        # Store the database so it can be used
+        cls._dbs[name] = {
+            'freqs': freqs,
+            'words': words,
+            'word_count': len(words)
+            }
+
+
+class Sequence(Maker):
+    """
+    Generate a sequence of values where a number is inserted into a template.
+    The template should specify an index value, for example:
+
+        "prefix-{index}"
+    """
+
+    def __init__(self, template, start_from=1):
+        self._template = template
+        self._start_from = start_from
+        self._index = start_from
+
+    def _reset(self):
+        self._index = self._start_from
+
+    def _assemble(self):
+        value = self._template.format(index=self._index)
+        self._index += 1
+        return value

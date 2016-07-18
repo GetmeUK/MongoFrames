@@ -56,6 +56,3 @@ class Random(Quota):
 
     def __float__(self):
         return random.uniform(self._min_quantity, self._max_quantity)
-
-# @@
-# - WeightedQuota
