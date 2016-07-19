@@ -9,13 +9,16 @@ class Blueprint:
     collection represented by a `Frame` class.
     """
 
-    def __init__(self, frame_cls, instructions=None):
+    def __init__(self, frame_cls, instructions=None, meta_fields=None):
 
         # The Frame class the blueprint is for
         self._frame_cls = frame_cls
 
         # A table of fields names mapped to makers
         self._instructions = instructions or {}
+
+        # A table of fields names mapped to makers
+        self._meta_fields = meta_fields or {}
 
     # Read-only properties
 
@@ -30,7 +33,10 @@ class Blueprint:
         presets = presets or []
 
         document = {}
-        for field_name in self._frame_cls._fields:
+
+        fields = self._frame_cls._fields | self._meta_fields
+
+        for field_name in fields:
 
             # Use a dedicated instruction if we have one
             if field_name in self._instructions:
@@ -55,21 +61,28 @@ class Blueprint:
         presets = presets or []
 
         document_copy = {}
+        meta_document = {}
         for field_name, value in document.items():
 
             # Use a dedicated instruction if we have one
             if field_name in self._instructions:
                 maker = self._instructions[field_name]
-                document_copy[field_name] = maker(value)
+                if field_name in self._meta_fields:
+                    meta_document[field_name] = maker(value)
+                else:
+                    document_copy[field_name] = maker(value)
                 continue
 
             # Check for a preset
             preset = Preset.find(presets, field_name)
             if preset:
-                document_copy[field_name] = preset.maker(value)
+                if field_name in self._meta_fields:
+                    meta_document[field_name] = preset.maker(value)
+                else:
+                    document_copy[field_name] = preset.maker(value)
                 continue
 
-        return document_copy
+        return (document_copy, meta_document)
 
     def reset(self, presets=None):
         """

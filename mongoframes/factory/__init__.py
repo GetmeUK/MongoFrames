@@ -79,7 +79,18 @@ class Factory:
         documents = self.finish(blueprint, documents)
 
         # Convert the documents to frame instances
-        frames = blueprint.frame_cls._ensure_frames(documents)
+        frames = []
+        for document in documents:
+            [frame_document, meta_document] = document
+
+            # Initialize the frame
+            frame = blueprint.frame_cls(frame_document)
+
+            # Apply any meta fields
+            for key, value in meta_document.items():
+                setattr(frame, key, value)
+
+            frames.append(frame)
 
         # Insert the documents (only if the frame class
         signal('factory_insert').send(blueprint.frame_cls, frames=frames)
