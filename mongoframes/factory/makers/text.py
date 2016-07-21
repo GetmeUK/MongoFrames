@@ -1,13 +1,64 @@
 import random
 import re
+import string
 
 from mongoframes.factory.makers import Maker
 
 __all__ = [
+    'Join',
     'Lorem',
     'Markov'
     'Sequence'
     ]
+
+
+class Code(Maker):
+    """
+    Generate a random code.
+    """
+
+    # The default character set that codes are made from
+    default_charset = string.ascii_uppercase + string.digits
+
+    def __init__(self, length, charset=None):
+
+        # If no charset is provided use the default
+        if not charset:
+            charset = self.default_charset
+
+        # The length of the code that will be generated
+        self._length = length
+
+        # The character set the code will be made from
+        self._charset = list(charset)
+
+    def _assemble(self):
+        return ''.join([
+            random.choice(self._charset) for i in range(0, int(self._length))
+            ])
+
+
+class Join(Maker):
+    """
+    Join the output of 2 or more `Maker`s together.
+    """
+
+    def __init__(self, sep, makers):
+
+        # The string used to join the `Maker` outputs together
+        self._sep = sep
+
+        # The list of `Maker`s who's output will be joined
+        self._makers = makers
+
+    def _assemble(self):
+        return [m._assemble() for m in self._makers]
+
+    def _finish(self, value):
+        parts = []
+        for i, maker in enumerate(self._makers):
+            parts.append(str(maker._finish(value[i])))
+        return self._sep.join(parts)
 
 
 class Lorem(Maker):
@@ -72,6 +123,10 @@ class Markov(Maker):
     article by Shabda Raaj:
     http://agiliq.com/blog/2009/06/generating-pseudo-random-text-with-markov-chains-u/
     """
+
+    # FIXME:
+    #   w1, w2 = w2, random.choice(db['freqs'][(w1, w2)])
+    #   KeyError: ('summer...."\n\nTHE', 'END')
 
     _dbs = {}
 
@@ -162,7 +217,6 @@ class Markov(Maker):
         sentence = sentence.replace('?', '')
         sentence = sentence.replace(':', '')
         sentence = sentence.replace('"', '')
-        sentence = sentence.replace("'", '')
 
         # If the last character is not an alphanumeric remove it
         sentence = re.sub('[^a-zA-Z0-9]$', '', sentence)

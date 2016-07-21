@@ -18,7 +18,7 @@ class Blueprint:
         self._instructions = instructions or {}
 
         # A table of fields names mapped to makers
-        self._meta_fields = meta_fields or {}
+        self._meta_fields = meta_fields or set([])
 
     # Read-only properties
 

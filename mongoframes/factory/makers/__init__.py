@@ -9,6 +9,7 @@ __all__ = [
     'Lambda',
     'ListOf',
     'Reference',
+    'Static',
     'SubFactory',
     'Unique'
     ]
@@ -76,19 +77,19 @@ class Lambda(Maker):
     Use a lambda function to generate a value.
     """
 
-    def __init__(self, func, assembler=False):
+    def __init__(self, func, assembler=True):
 
         # The function to call
         self._func = func
 
-        # Flag indicating if the providers should be called in _assemble (True)
-        # or _finish (False).
+        # Flag indicating if the lambda function should be called in _assemble
+        # (True) or _finish (False).
         self._assembler = assembler
 
     def _assemble(self):
-        if not self._assembler:
-            return None
-        return self._func()
+        if self._assembler:
+            return self._func()
+        return None
 
     def _finish(self, value):
         if self._assembler:
@@ -139,6 +140,30 @@ class Reference(Maker):
     def _finish(self, value):
         return self._frame_cls.one(Q[self._field_name] == value)
 
+
+class Static(Maker):
+    """
+    A maker that returns a fixed given value.
+    """
+
+    def __init__(self, value, assembler=True):
+
+        # The value to return
+        self._value = value
+
+        # Flag indicating if the value should be return in _assemble (True) or
+        # _finish (False).
+        self._assembler = assembler
+
+    def _assemble(self):
+        if self._assembler:
+            return self._value
+        return None
+
+    def _finish(self, value):
+        if self._assembler:
+            return value
+        return self._value
 
 class SubFactory(Maker):
     """
