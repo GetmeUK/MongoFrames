@@ -5,6 +5,7 @@ import faker
 from mongoframes.queries import Q
 
 __all__ = [
+    'DictOf',
     'Faker',
     'Lambda',
     'ListOf',
@@ -41,6 +42,38 @@ class Maker:
         if not hasattr(Maker, '_fake'):
             Maker._fake = faker.Factory.create()
         return Maker._fake
+
+
+class DictOf(Maker):
+    """
+    Make a dictionary of key/values where each value is a set value or generated
+    using a maker.
+    """
+
+    def __init__(self, table):
+
+        # The table of keyword arguments that will be used to generate the
+        # dictionary.
+        self._table = table
+
+    def _assemble(self):
+        table = {}
+        for k, v in self._table.items():
+            if isinstance(v, Maker):
+                table[k] = v._assemble()
+            else:
+                table[k] = None
+        return table
+
+    def _finish(self, value):
+        table = {}
+        for k, v in self._table.items():
+            if isinstance(v, Maker):
+                table[k] = slef._table[k]._finish(value[k])
+            else:
+                table[k] = slef._table[k]
+
+        return table
 
 
 class Faker(Maker):
@@ -101,6 +134,9 @@ class ListOf(Maker):
     """
     Make a list of values using another maker to generate each value.
     """
+
+    # @@ Consider adding support for reseting makers within the list each time
+    #    it's generated to allow list contents to be unique per record.
 
     def __init__(self, maker, quantity):
 
@@ -186,8 +222,19 @@ class SubFactory(Maker):
         return self._blueprint.assemble(self._presets)
 
     def _finish(self, value):
-        return self._blueprint.finish(value, self._presets)
+        [frame_document, meta_document] = self._blueprint.finish(
+            value,
+            self._presets
+            )
 
+        # Initialize the sub-frame
+        sub_frame = self._blueprint.frame_cls(frame_document)
+
+        # Apply any meta fields
+        for key, value in meta_document.items():
+            setattr(sub_frame, key, value)
+
+        return sub_frame
 
 class Unique(Maker):
     """

@@ -11,10 +11,11 @@ __all__ = [
 
 class DateBetween(Maker):
     """
-    Return a date between two points.
+    Return a date between two dates.
     """
 
     def __init__(self, min_date, max_date):
+        # The date range between which a date will be selected
         self._min_date = min_date
         self._max_date = max_date
 
