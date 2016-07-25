@@ -15,6 +15,8 @@ class ImageURL(Maker):
     def __init__(self,
         width,
         height,
+        background='CCCCCC',
+        foreground='8D8D8D',
         options=None,
         service_url='http://fakeimg.pl',
         service_formatter=None
@@ -23,6 +25,10 @@ class ImageURL(Maker):
         # The size of the image to generate
         self._width = width
         self._height = height
+
+        # The foreground/background colours for the image
+        self._background = background
+        self._foreground = foreground
 
         # A dictionary of options used when generating the image
         self._options = options
@@ -39,6 +45,8 @@ class ImageURL(Maker):
             self._service_url,
             int(self._width),
             int(self._height),
+            self._background,
+            self._foreground,
             self._options
             )
 
@@ -49,14 +57,24 @@ class ImageURL(Maker):
         return min_date + datetime.timedelta(seconds=seconds)
 
     @staticmethod
-    def _default_service_formatter(service_url, width, height, options):
+    def _default_service_formatter(
+        service_url,
+        width,
+        height,
+        background,
+        foreground,
+        options
+        ):
         """Generate an image URL for a service"""
 
         # Build the base URL
-        image_url = '{service_url}/{width}x{height}/'.format(
+        image_tmp = '{service_url}/{width}x{height}/{background}/{foreground}'
+        image_url = image_tmp.format(
             service_url=service_url,
             width=width,
-            height=height
+            height=height,
+            background=background,
+            foreground=foreground
             )
 
         # Add any options
