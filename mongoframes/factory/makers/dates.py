@@ -1,4 +1,5 @@
 import datetime
+import math
 import random
 import re
 
@@ -49,10 +50,11 @@ class DateBetween(Maker):
         return d
 
     def _assemble(self):
-        return None
-
-    def _finish(self, value):
         min_date = self.parse_date_obj(self._min_date)
         max_date = self.parse_date_obj(self._max_date)
         seconds = random.randint(0, int((max_date - min_date).total_seconds()))
-        return min_date + datetime.timedelta(seconds=seconds)
+        return math.floor(seconds / 86400)
+
+    def _finish(self, value):
+        min_date = self.parse_date_obj(self._min_date)
+        return min_date + datetime.timedelta(seconds=value * 86400)

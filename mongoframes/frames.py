@@ -521,7 +521,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
                 if isinstance(value, dict):
                     if expect_map:
-                        # Dictionary of embedded documentd
+                        # Dictionary of embedded documents
                         raw_subs += value.values()
                         value = {k: sub(v) for k, v in value.items() \
                                 if isinstance(v, dict)}
