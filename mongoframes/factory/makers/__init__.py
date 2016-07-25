@@ -110,14 +110,16 @@ class Lambda(Maker):
     Use a lambda function to generate a value.
     """
 
-    def __init__(self, func, assembler=True):
+    def __init__(self, func, assembler=True, finisher=False):
 
         # The function to call
         self._func = func
 
         # Flag indicating if the lambda function should be called in _assemble
-        # (True) or _finish (False).
         self._assembler = assembler
+
+        # Flag indicating if the lambda function should be called in _finish
+        self._finisher = finisher
 
     def _assemble(self):
         if self._assembler:
@@ -125,9 +127,9 @@ class Lambda(Maker):
         return None
 
     def _finish(self, value):
-        if self._assembler:
-            return value
-        return self._func()
+        if self._finisher:
+            return self._func(value)
+        return value
 
 
 class ListOf(Maker):
