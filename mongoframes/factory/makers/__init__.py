@@ -107,7 +107,7 @@ class Faker(Maker):
 
 class Lambda(Maker):
     """
-    Use a lambda function to generate a value.
+    Use a function to generate a value.
     """
 
     def __init__(self, func, assembler=True, finisher=False):
