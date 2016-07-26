@@ -8,6 +8,46 @@ __all__ = [
     ]
 
 
+class Cycle(Maker):
+    """
+    Pick the next item from a list of makers or values cycling through the list
+    and repeating when we reach the end.
+    """
+
+    def __init__(self, items, weights=None):
+
+        # The list of makers/values to select from
+        self._items = items
+
+        # The index of the item that will be returned next
+        self._item_index = 0
+
+    def reset(self):
+        """Reset the item index"""
+        self._item_index = 0
+
+    def _assemble(self):
+        # Select the next item
+        item_index = self._item_index
+        item = self._items[item_index]
+
+        # Move the index on 1 (and wrap it if we are at the end of the list)
+        self._item_index += 1
+        if self._item_index >= len(self._items):
+            self._item_index = 0
+
+        # Return the index and it's assembled value
+        if isinstance(item, Maker):
+            return [item_index, item._assemble()]
+        return [item_index, None]
+
+    def _finish(self, value):
+        item = self._items[value[0]]
+        if isinstance(item, Maker):
+            return item._finish(value[1])
+        return item
+
+
 class OneOf(Maker):
     """
     Pick one item from a list of makers or values.
