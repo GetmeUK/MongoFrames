@@ -96,3 +96,5 @@ class Factory:
         signal('fake').send(blueprint.frame_cls, frames=frames)
         frames = blueprint.frame_cls.insert_many(frames)
         signal('faked').send(blueprint.frame_cls, frames=frames)
+
+        return frames

@@ -69,9 +69,9 @@ class DictOf(Maker):
         table = {}
         for k, v in self._table.items():
             if isinstance(v, Maker):
-                table[k] = slef._table[k]._finish(value[k])
+                table[k] = self._table[k]._finish(value[k])
             else:
-                table[k] = slef._table[k]
+                table[k] = self._table[k]
 
         return table
 
@@ -112,6 +112,9 @@ class Lambda(Maker):
 
     def __init__(self, func, assembler=True, finisher=False):
 
+        assert assembler or finisher, \
+                'Either `assembler` or `finisher` must be true for lambda'
+
         # The function to call
         self._func = func
 
@@ -137,10 +140,7 @@ class ListOf(Maker):
     Make a list of values using another maker to generate each value.
     """
 
-    # @@ Consider adding support for reseting makers within the list each time
-    #    it's generated to allow list contents to be unique per record.
-
-    def __init__(self, maker, quantity):
+    def __init__(self, maker, quantity, reset_maker=False):
 
         # The maker used to generate each value in the list
         self._maker = maker
@@ -148,11 +148,23 @@ class ListOf(Maker):
         # The number of list items to generate
         self._quantity = quantity
 
+        # A flag indicating if the maker should be reset each time the list is
+        # generated.
+        self._reset_maker = reset_maker
+
     def _assemble(self):
         quantity = int(self._quantity)
+
+        if self._reset_maker:
+            self._maker.reset()
+
         return [self._maker() for i in range(0, quantity)]
 
     def _finish(self, value):
+
+        if self._reset_maker:
+            self._maker.reset()
+
         return [self._maker(v) for v in value]
 
 
@@ -161,7 +173,7 @@ class Reference(Maker):
     Make a reference to another document.
     """
 
-    def __init__(self, frame_cls, field_name, values):
+    def __init__(self, frame_cls, field_name, value):
 
         # The `Frame` class that will be used to obtain the referenced document
         self._frame_cls = frame_cls
@@ -170,13 +182,30 @@ class Reference(Maker):
         self._field_name = field_name
 
         # The list of values that can be used to select a reference
-        self._values = values
+        self._value = value
 
     def _assemble(self):
-        return random.choice(self._values)
+        if isinstance(self._value, Maker):
+            return self._value()
+        return None
 
     def _finish(self, value):
-        return self._frame_cls.one(Q[self._field_name] == value)
+        if isinstance(self._value, Maker):
+            value = self._value(value)
+        else:
+            value = self._value
+
+        # Convert the value to a reference
+        value = self._frame_cls.one(
+            Q[self._field_name] == value,
+            projection={'_id': True}
+            )
+
+        # Check the referenced document was found
+        if value:
+            return value._id
+
+        return None
 
 
 class Static(Maker):
@@ -202,6 +231,7 @@ class Static(Maker):
         if self._assembler:
             return value
         return self._value
+
 
 class SubFactory(Maker):
     """
@@ -238,6 +268,7 @@ class SubFactory(Maker):
 
         return sub_frame
 
+
 class Unique(Maker):
     """
     Ensure that unique values are generated.
@@ -245,8 +276,8 @@ class Unique(Maker):
 
     def __init__(self,
         maker,
-        existing_values=None,
-        assembler=False,
+        exclude=None,
+        assembler=True,
         max_attempts=1000
         ):
 
@@ -254,14 +285,14 @@ class Unique(Maker):
         self._maker = maker
 
         # A set of existing values
-        self._existing_values = existing_values or set([])
+        self._exclude = exclude or set([])
 
         # Flag indicating if the providers should be called in _assemble (True)
         # or _finish (False).
         self._assembler = assembler
 
         # A set of used values
-        self._used_values = set(self._existing_values)
+        self._used_values = set(self._exclude)
 
         # The maximum number of attempts to generate unique data that should be
         # performed.
@@ -269,7 +300,7 @@ class Unique(Maker):
 
     def reset(self):
         """Reset the set of used values"""
-        self._used_values = set(self._existing_values)
+        self._used_values = set(self._exclude)
 
     def _get_unique(self, *args):
         """Generate a unique value using the assigned maker"""
@@ -294,9 +325,9 @@ class Unique(Maker):
     def _assemble(self):
         if not self._assembler:
             return self._maker()
+        return self._get_unique()
 
     def _finish(self, value):
         if self._assembler:
-            return self.maker(value)
-
+            return self._maker(value)
         return self._get_unique(value)

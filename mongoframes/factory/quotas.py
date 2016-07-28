@@ -17,7 +17,7 @@ class Quota:
     """
 
     def __init__(self, quantity):
-        self._quantity = 0
+        self._quantity = quantity
 
     def __int__(self):
         return int(self._quantity)
