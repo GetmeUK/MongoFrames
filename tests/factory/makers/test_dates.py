@@ -1,6 +1,5 @@
 import datetime
 
-from mongoframes.factory import quotas
 from mongoframes.factory.makers import dates as date_makers
 
 from tests.fixtures import *

@@ -9,7 +9,7 @@ __all__ = [
 
 class ImageURL(Maker):
     """
-    Return a fake image URL (by default we use the http://fakeimg.pl service).
+    Return a fake image URL (by default we use the `fakeimg.pl` service).
     """
 
     def __init__(self,
@@ -18,7 +18,7 @@ class ImageURL(Maker):
         background='CCCCCC',
         foreground='8D8D8D',
         options=None,
-        service_url='http://fakeimg.pl',
+        service_url='://fakeimg.pl',
         service_formatter=None
         ):
 
@@ -50,12 +50,6 @@ class ImageURL(Maker):
             self._options
             )
 
-    def _finish(self, value):
-        min_date = self.parse_date_obj(self._min_date)
-        max_date = self.parse_date_obj(self._max_date)
-        seconds = random.randint(0, int((max_date - min_date).total_seconds()))
-        return min_date + datetime.timedelta(seconds=seconds)
-
     @staticmethod
     def _default_service_formatter(
         service_url,
@@ -68,7 +62,7 @@ class ImageURL(Maker):
         """Generate an image URL for a service"""
 
         # Build the base URL
-        image_tmp = '{service_url}/{width}x{height}/{background}/{foreground}'
+        image_tmp = '{service_url}/{width}x{height}/{background}/{foreground}/'
         image_url = image_tmp.format(
             service_url=service_url,
             width=width,
