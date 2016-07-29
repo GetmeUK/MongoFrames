@@ -2,8 +2,8 @@ from mongoframes.factory import blueprints
 from mongoframes.factory import makers
 from mongoframes.factory import presets
 from mongoframes.factory import quotas
-from mongoframes.factory.makers import selections
-from mongoframes.factory.makers import text
+from mongoframes.factory.makers import selections as selection_makers
+from mongoframes.factory.makers import text as text_makers
 
 from tests.fixtures import *
 
@@ -113,7 +113,10 @@ def test_list_of():
     """
 
     # Configured to not reset sub-maker
-    maker = makers.ListOf(selections.Cycle(list('abcde')), quotas.Quota(6))
+    maker = makers.ListOf(
+        selection_makers.Cycle(list('abcde')),
+        quotas.Quota(6)
+        )
 
     # Check the assembled result
     assembled = maker._assemble()
@@ -129,7 +132,7 @@ def test_list_of():
 
     # Configured to reset sub-maker
     maker = makers.ListOf(
-        selections.Cycle(list('abcde')),
+        selection_makers.Cycle(list('abcde')),
         quotas.Quota(6),
         reset_maker=True
         )
@@ -261,7 +264,10 @@ def test_unique():
     assert failed
 
     # Check that we can include a set of initial exluded values
-    maker = makers.Unique(text.Sequence('test-{index}'), exclude={'test-3'})
+    maker = makers.Unique(
+        text_makers.Sequence('test-{index}'),
+        exclude={'test-3'}
+        )
 
     names = set([])
     for i in range(0, 9):

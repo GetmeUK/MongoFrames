@@ -12,7 +12,10 @@ __all__ = [
 
 class DateBetween(Maker):
     """
-    Return a date between two dates.
+    Return a date between two dates. Dates are specified as be specified either as
+    `datetime.date` instances or as a string of the form:
+
+        "{yesterday|today|tomorrow}{+|-}{no_of_days}"
     """
 
     def __init__(self, min_date, max_date):
@@ -20,7 +23,21 @@ class DateBetween(Maker):
         self._min_date = min_date
         self._max_date = max_date
 
-    def parse_date_obj(self, d):
+    def _assemble(self):
+        min_date = self.parse_date(self._min_date)
+        max_date = self.parse_date(self._max_date)
+        seconds = random.randint(0, int((max_date - min_date).total_seconds()))
+        return math.floor(seconds / 86400)
+
+    def _finish(self, value):
+        min_date = self.parse_date(self._min_date)
+        return min_date + datetime.timedelta(seconds=value * 86400)
+
+    @staticmethod
+    def parse_date(d):
+        if isinstance(d, datetime.date):
+            return d
+
         # Parse the date string
         result = re.match(
             '(today|tomorrow|yesterday)((\-|\+)(\d+)){0,1}',
@@ -33,10 +50,10 @@ class DateBetween(Maker):
             d = datetime.date.today()
 
         elif result.groups()[0] == 'tomorrow':
-            d = datetime.date.today() - datetime.timedelta(days=1)
+            d = datetime.date.today() + datetime.timedelta(days=1)
 
         elif result.groups()[0] == 'yesterday':
-            d = datetime.date.today() + datetime.timedelta(days=1)
+            d = datetime.date.today() - datetime.timedelta(days=1)
 
         # Add any offset
         if result.groups()[1]:
@@ -48,13 +65,3 @@ class DateBetween(Maker):
                 d -= datetime.timedelta(days=days)
 
         return d
-
-    def _assemble(self):
-        min_date = self.parse_date_obj(self._min_date)
-        max_date = self.parse_date_obj(self._max_date)
-        seconds = random.randint(0, int((max_date - min_date).total_seconds()))
-        return math.floor(seconds / 86400)
-
-    def _finish(self, value):
-        min_date = self.parse_date_obj(self._min_date)
-        return min_date + datetime.timedelta(seconds=value * 86400)
