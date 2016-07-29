@@ -11,14 +11,14 @@ class Counter(Maker):
     """
 
     def __init__(self, start_from=1, step=1):
-        self._start_from = start_from
+        self._start_from = int(start_from)
         self._step = step
         self._counter = self._start_from
 
     def _reset(self):
-        self._counter = self._start_from
+        self._counter = int(self._start_from)
 
     def _assemble(self):
         value = self._counter
-        self._counter += 1
+        self._counter += int(self._step)
         return value
