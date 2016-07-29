@@ -3,6 +3,7 @@ import random
 from mongoframes.factory.makers import Maker
 
 __all__ = [
+    'Cycle',
     'OneOf',
     'SomeOf'
     ]
@@ -14,7 +15,7 @@ class Cycle(Maker):
     and repeating when we reach the end.
     """
 
-    def __init__(self, items, weights=None):
+    def __init__(self, items):
 
         # The list of makers/values to select from
         self._items = items
