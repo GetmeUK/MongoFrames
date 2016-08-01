@@ -1,3 +1,4 @@
+import math
 import random
 
 from mongoframes.factory import makers
@@ -67,7 +68,7 @@ def test_one_of():
         # Count the occurances
         counts[finished] += 1
 
-    # Confirm the counts are as approx. evenly distributed
+    # Confirm the counts are approx. evenly distributed
     for value in ['foo', 'bar', 'zee']:
         assert int(round(counts[value] / 100)) == 3
 
@@ -92,9 +93,9 @@ def test_one_of():
         # Count the occurances
         counts[finished] += 1
 
-    # Confirm the counts are as approx. evenly distributed
+    # Confirm the counts are approx. evenly distributed
     for value in ['foo', 'bar', 'zee']:
-        assert int(counts[value] / 100) == 3
+        assert int(round(counts[value] / 100)) == 3
 
     # Configured to return using a weighted bias
     maker = selection_makers.OneOf(
@@ -115,13 +116,13 @@ def test_one_of():
         # Count the occurances
         counts[finished] += 1
 
-    # Confirm the counts are as approx. evenly distributed
+    # Confirm the counts are approx. distributed based on the weights
     assert int(round(counts['foo'] / 100)) == 1
     assert int(round(counts['bar'] / 100)) == 3
     assert int(round(counts['zee'] / 100)) == 6
 
 
-def test_some_or():
+def test_some_of():
     """
     `SomeOf` makers should return a list of values at random (optionally
     weighted) from a list of items (python types of or makers).
@@ -130,13 +131,155 @@ def test_some_or():
     # Seed the random generator to ensure test results are consistent
     random.seed(110679)
 
-    # @@ Configured to return a sample from a list of python types
+    # Define the choices we'll be sampling from
+    choices = ['foo', 'bar', 'zee', 'oof', 'rab', 'eez']
+    choices_range = range(0, len(choices))
+    choices_set = set(choices)
 
-    # @@ Configured to return a sample from a list of makers
+    # Configured to return a sample from a list of python types
+    maker = selection_makers.SomeOf(list(choices), quotas.Quota(3))
 
-    # @@ Configured to return a sample from a list of python types weighted
+    counts = {c: 0 for c in choices}
+    for i in range(0, 1000):
+        # Check the assembled result
+        assembled = maker._assemble()
+        assert len(assembled) == 3
+        for item in assembled:
+            assert item[0] in choices_range and item[1] == None
 
-    # @@ Configured to return a sample from a list of python types with replacement
+        # Check the finished result
+        finished = maker._finish(assembled)
+        assert len(set(finished)) == 3
+        assert set(finished).issubset(choices_set)
 
-    # @@ Configured to return a sample from a list of python types weighted with
+        # Count occurances
+        for value in finished:
+            counts[value] += 1
+
+    # Confirm the counts are approx. evenly distributed
+    for value in choices:
+        assert int(round(counts[value] / 100)) == 5
+
+    # Configured to return a sample from a list of makers
+    maker = selection_makers.SomeOf(
+        [makers.Static(c) for c in choices],
+        quotas.Quota(3)
+        )
+
+    counts = {c: 0 for c in choices}
+    for i in range(0, 1000):
+        # Check the assembled result
+        assembled = maker._assemble()
+        assert len(assembled) == 3
+        for item in assembled:
+            assert item[0] in choices_range and item[1] in choices
+
+        # Check the finished result
+        finished = maker._finish(assembled)
+        assert len(set(finished)) == 3
+        assert set(finished).issubset(choices_set)
+
+        # Count occurances
+        for value in finished:
+            counts[value] += 1
+
+    # Confirm the counts are approx. evenly distributed
+    for value in choices:
+        assert int(round(counts[value] / 100)) == 5
+
+    # Configured to return a sample from a list of python types weighted
+    maker = selection_makers.SomeOf(
+        list(choices),
+        quotas.Quota(3),
+        weights=[1, 2, 4, 8, 16, 32]
+        )
+
+    counts = {c: 0 for c in choices}
+    for i in range(0, 1000):
+        # Check the assembled result
+        assembled = maker._assemble()
+        assert len(assembled) == 3
+        for item in assembled:
+            assert item[0] in choices_range and item[1] == None
+
+        # Check the finished result
+        finished = maker._finish(assembled)
+        assert len(finished) == 3
+        assert set(finished).issubset(choices_set)
+
+        # Count occurances
+        for value in finished:
+            counts[value] += 1
+
+    # Confirm the counts are approx. based on the weights
+    for i, value in enumerate(choices):
+
+        count = counts[value] / 1000
+        prob = maker.p(i, 3, [1, 2, 4, 8, 16, 32])
+        tol = prob * 0.15
+
+        assert count > (prob - tol) and count < (prob + tol)
+
+    # Configured to return a sample from a list of python types with replacement
+    maker = selection_makers.SomeOf(
+        [makers.Static(c) for c in choices],
+        quotas.Quota(3),
+        with_replacement=False
+        )
+
+    not_uniques = 0
+    for i in range(0, 1000):
+        # Check the assembled result
+        assembled = maker._assemble()
+        assert len(assembled) == 3
+        for item in assembled:
+            assert item[0] in choices_range and item[1] in choices
+
+        # Check the finished result
+        finished = maker._finish(assembled)
+        assert len(finished) == 3
+        assert set(finished).issubset(choices_set)
+
+        # Count occurances of values with non-unique values
+        if len(set(value)) < 3:
+            not_uniques += 1
+
+    # Check that some values where generated with non-unique items
+    assert not_uniques > 0
+
+    # Configured to return a sample from a list of python types weighted with
     # replacement.
+    maker = selection_makers.SomeOf(
+        list(choices),
+        quotas.Quota(3),
+        weights=[1, 2, 4, 8, 16, 32],
+        with_replacement=True
+        )
+
+    counts = {c: 0 for c in choices}
+    for i in range(0, 1000):
+        # Check the assembled result
+        assembled = maker._assemble()
+        assert len(assembled) == 3
+        for item in assembled:
+            assert item[0] in choices_range and item[1] == None
+
+        # Check the finished result
+        finished = maker._finish(assembled)
+        assert len(finished) == 3
+        assert set(finished).issubset(choices_set)
+
+        # Count occurances
+        for value in finished:
+            counts[value] += 1
+
+    # Confirm the counts are approx. (+/- 15% tolerance) based on the weights
+    weight = 1
+    for value in choices:
+        count = counts[value]
+        prob = (weight / 63.0) * 3000.0
+        tol = prob * 0.15
+
+        assert count > (prob - tol) and count < (prob + tol)
+
+        weight *= 2

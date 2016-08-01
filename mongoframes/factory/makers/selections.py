@@ -1,3 +1,5 @@
+from functools import reduce
+import itertools
 import random
 
 from mongoframes.factory.makers import Maker
@@ -145,7 +147,7 @@ class SomeOf(Maker):
                 with_replacement=self._with_replacement
                 )
         else:
-            sample_range = range(0, sample_size)
+            sample_range = range(0, len(self._items))
             if self._with_replacement:
                 sample_indexes = [random.choice(sample_range) \
                     for s in range(0, sample_size)]
@@ -174,27 +176,84 @@ class SomeOf(Maker):
         return values
 
     @staticmethod
+    def p(i, sample_size, weights):
+        """
+        Given a weighted set and sample size return the probabilty that the
+        weight `i` will be present in the sample.
+
+        Created to test the output of the `SomeOf` maker class. The maths was
+        provided by Andy Blackshaw - thank you dad :)
+        """
+
+        # Determine the initial pick values
+        weight_i = weights[i]
+        weights_sum = sum(weights)
+
+        # Build a list of weights that don't contain the weight `i`. This list will
+        # be used to build the possible picks before weight `i`.
+        other_weights = list(weights)
+        del other_weights[i]
+
+        # Calculate the probability
+        probability_of_i = 0
+        for picks in range(0, sample_size):
+
+            # Build the list of possible permutations for this pick in the sample
+            permutations = list(itertools.permutations(other_weights, picks))
+
+            # Calculate the probability for this permutation
+            permutation_probabilities = []
+            for permutation in permutations:
+
+                # Calculate the probability for each pick in the permutation
+                pick_probabilities = []
+                pick_weight_sum = weights_sum
+
+                for pick in permutation:
+                    pick_probabilities.append(pick / pick_weight_sum)
+
+                    # Each time we pick we update the sum of the weight the next
+                    # pick is from.
+                    pick_weight_sum -= pick
+
+                # Add the probability of picking i as the last pick
+                pick_probabilities += [weight_i / pick_weight_sum]
+
+                # Multiple all the probabilities for the permutation together
+                permutation_probability = reduce(
+                    lambda x, y: x * y, pick_probabilities
+                    )
+                permutation_probabilities.append(permutation_probability)
+
+            # Add together all the probabilities for all permutations together
+            probability_of_i += sum(permutation_probabilities)
+
+        return probability_of_i
+
+    @staticmethod
     def weighted(weights, sample_size, with_replacement=False):
         """
         Return a set of random integers 0 <= N <= len(weights) - 1, where the
         weights determine the probability of each possible integer in the set.
         """
-        assert sample_size <= weights, "The sample size must be smaller than \
-or equal to the number of weights it's taken from."
+        assert sample_size <= len(weights), "The sample size must be smaller \
+than or equal to the number of weights it's taken from."
 
         # Convert weights to floats
         weights = [float(w) for w in weights]
+        weight_indexes = list(range(0, len(weights)))
 
         samples = []
         while len(samples) < sample_size:
             # Choice a weight
-            weight = OneOf.weighted(weights)
+            sample = OneOf.weighted(weights)
+
+            # Add the choosen weight to our samples
+            samples.append(weight_indexes[sample])
 
             if not with_replacement:
                 # Remove the weight from the list of weights we can select from
-                del weights[weight]
-
-            # Add the choosen weight to our samples
-            samples.append(weight)
+                del weights[sample]
+                del weight_indexes[sample]
 
         return samples
