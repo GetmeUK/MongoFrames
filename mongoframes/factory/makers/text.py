@@ -5,6 +5,7 @@ import string
 from mongoframes.factory.makers import Maker
 
 __all__ = [
+    'Code',
     'Join',
     'Lorem',
     'Markov'
