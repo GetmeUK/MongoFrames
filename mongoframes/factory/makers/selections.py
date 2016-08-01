@@ -92,7 +92,14 @@ class OneOf(Maker):
 
         http://stackoverflow.com/questions/3679694/a-weighted-version-of-random-choice
         """
+
+        # Convert weights to floats
+        weights = [float(w) for w in weights]
+
+        # Pick a value at random
         choice = random.uniform(0, sum(weights))
+
+        # Find the value
         position = 0
         for i, weight in enumerate(weights):
             if position + weight >= choice:
@@ -105,9 +112,13 @@ class SomeOf(Maker):
     Pick one or more items from a list of makers or values.
     """
 
-    # @@ Consider adding an allow duplicates option
-
-    def __init__(self, items, sample_size, weights=None):
+    def __init__(
+            self,
+            items,
+            sample_size,
+            weights=None,
+            with_replacement=False
+            ):
 
         # The list of makers/values to select from
         self._items = items
@@ -118,15 +129,28 @@ class SomeOf(Maker):
         # The weighting to apply when selecting a maker/value
         self._weights = weights
 
+        # A flag indicating if the same item can be selected from the list more
+        # than once.
+        self._with_replacement = with_replacement
+
     def _assemble(self):
         # Select some items
         sample_size = int(self._sample_size)
 
         sample_indexes = []
         if self._weights:
-            sample_indexes = self.weighted(self._weights, sample_size)
+            sample_indexes = self.weighted(
+                self._weights,
+                sample_size,
+                with_replacement=self._with_replacement
+                )
         else:
-            sample_indexes = random.sample(range(0, sample_size), sample_size)
+            sample_range = range(0, sample_size)
+            if self._with_replacement:
+                sample_indexes = [random.choice(sample_range) \
+                    for s in range(0, sample_size)]
+            else:
+                sample_indexes = random.sample(sample_range, sample_size)
 
         # Return the sampled indexes and their assembled values
         values = []
@@ -150,7 +174,7 @@ class SomeOf(Maker):
         return values
 
     @staticmethod
-    def weighted(weights, sample_size):
+    def weighted(weights, sample_size, with_replacement=False):
         """
         Return a set of random integers 0 <= N <= len(weights) - 1, where the
         weights determine the probability of each possible integer in the set.
@@ -158,13 +182,19 @@ class SomeOf(Maker):
         assert sample_size <= weights, "The sample size must be smaller than \
 or equal to the number of weights it's taken from."
 
+        # Convert weights to floats
+        weights = [float(w) for w in weights]
+
         samples = []
         while len(samples) < sample_size:
-            # Pick a sample
-            sample = OneOf.weighted(weights)
+            # Choice a weight
+            weight = OneOf.weighted(weights)
 
-            # Remove it from the list of weights
-            del weights[sample]
+            if not with_replacement:
+                # Remove the weight from the list of weights we can select from
+                del weights[weight]
 
-            # Add the sample to our samples
-            samples.append(sample)
+            # Add the choosen weight to our samples
+            samples.append(weight)
+
+        return samples
