@@ -44,21 +44,30 @@ class Join(Maker):
     Join the output of 2 or more `Maker`s together.
     """
 
-    def __init__(self, sep, makers):
+    def __init__(self, items, sep=' '):
 
-        # The string used to join the `Maker` outputs together
+        # The list of makers/values that will be joined
+        self._items = items
+
+        # The string used to join the items together
         self._sep = sep
 
-        # The list of `Maker`s who's output will be joined
-        self._makers = makers
-
     def _assemble(self):
-        return [m._assemble() for m in self._makers]
+        values = []
+        for item in self._items:
+            if isinstance(item, Maker):
+                values.append(item._assemble())
+            else:
+                values.append(item)
+        return values
 
     def _finish(self, value):
         parts = []
-        for i, maker in enumerate(self._makers):
-            parts.append(str(maker._finish(value[i])))
+        for i, item in enumerate(self._items):
+            if isinstance(item, Maker):
+                parts.append(str(item._finish(value[i])))
+            else:
+                parts.append(str(item))
         return self._sep.join(parts)
 
 
