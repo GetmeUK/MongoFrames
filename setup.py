@@ -92,7 +92,7 @@ setup(
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        'dev': ['pytest', 'pytest-mock', 'tox'],
+        'develop': ['pytest', 'pytest-mock', 'tox'],
         'test': ['pytest', 'pytest-mock', 'tox']
     },
 
