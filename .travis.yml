@@ -7,6 +7,8 @@ python:
   - "3.5-dev" # 3.5 development branch
   - "nightly" # currently points to 3.6-dev
 # command to install dependencies
-install: "pip install -e .[develop]"
+install:
+    "pip install -e ."
+    "pip install pytest-mock"
 # command to run tests
 script: py.test
