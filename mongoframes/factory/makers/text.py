@@ -106,10 +106,16 @@ class Lorem(Maker):
             return '\n'.join(self.get_fake().paragraphs(nb=quantity))
 
         if self._text_type == 'paragraph':
-            return self.get_fake().paragraphs(nb_sentences=quantity)
+            return self.get_fake().paragraph(
+                nb_sentences=quantity,
+                variable_nb_sentences=False
+                )
 
         if self._text_type == 'sentence':
-            return self.get_fake().sentence(nb_words=quantity)
+            return self.get_fake().sentence(
+                nb_words=quantity,
+                variable_nb_words=False
+                )
 
 
 class Markov(Maker):
@@ -204,7 +210,7 @@ class Markov(Maker):
 
         # Generate the complete sentence
         sentence = []
-        for i in range(words):
+        for i in range(0, words - 1):
             sentence.append(w1)
             w1, w2 = w2, random.choice(db['freqs'][(w1, w2)])
         sentence.append(w2)
@@ -242,13 +248,15 @@ class Markov(Maker):
     @classmethod
     def init_word_db(cls, name, text):
         """Initialize the database of words for the maker"""
+        # Prep the words
+        text = text.replace('\n', ' ').replace('\r', ' ')
         words = [w.strip() for w in text.split(' ') if w.strip()]
-        freqs = {}
 
         assert len(words) > 2, \
                 'Database text sources must contain 3 or more words.'
 
         # Build the database
+        freqs = {}
         for i in range(len(words) - 2):
 
             # Create a triplet from the current word
@@ -267,7 +275,7 @@ class Markov(Maker):
         cls._dbs[name] = {
             'freqs': freqs,
             'words': words,
-            'word_count': len(words)
+            'word_count': len(words) - 2
             }
 
 
@@ -284,7 +292,7 @@ class Sequence(Maker):
         self._start_from = start_from
         self._index = start_from
 
-    def _reset(self):
+    def reset(self):
         self._index = self._start_from
 
     def _assemble(self):

@@ -227,7 +227,8 @@ def test_sub_factory():
 
 def test_unique():
     """
-    `Unique` makers guarentee a unique value is return form the maker they are
+    `Unique` makers guarentee a unique value is return from the maker they are
+    wrapped around.
     """
 
     # Confifured as assembler

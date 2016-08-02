@@ -5,9 +5,7 @@ from tests.fixtures import *
 
 
 def test_counter():
-    """
-    `Counter` makers should return a number sequence.
-    """
+    """`Counter` makers should return a number sequence"""
 
     maker = number_makers.Counter(quotas.Quota(10), step=quotas.Quota(5))
 
