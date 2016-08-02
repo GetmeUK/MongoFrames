@@ -15,7 +15,7 @@ class Counter(Maker):
         self._step = step
         self._counter = self._start_from
 
-    def _reset(self):
+    def reset(self):
         self._counter = int(self._start_from)
 
     def _assemble(self):

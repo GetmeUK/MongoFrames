@@ -199,7 +199,7 @@ def test_static():
     finished = maker._finish(assembled)
     assert finished == value
 
-def test_sub_factory():
+def test_sub_factory(mocker):
     """
     `SubFactory` makers should return a sub-frame/document using a blueprint and
     optionally a list of presets.
@@ -224,6 +224,11 @@ def test_sub_factory():
     finished = maker._finish(assembled)
     assert isinstance(finished, Inventory)
     assert finished._document == {'gold': 10, 'skulls': 100}
+
+    # Reset should reset the sub factories associated blueprint
+    mocker.spy(inventory_blueprint, 'reset')
+    maker.reset()
+    assert inventory_blueprint.reset.call_count == 1
 
 def test_unique():
     """
@@ -276,3 +281,18 @@ def test_unique():
         names.add(assembled)
 
     assert 'test-3' not in names
+
+    # Reset should clear the generate unique values from the maker and allow
+    # those values to be generated again.
+    maker = makers.Unique(makers.Static('foo'))
+
+    failed = False
+    try:
+        for i in range(0, 100):
+            finished = maker._finish(maker._assemble())
+            maker.reset()
+
+    except AssertionError:
+        failed = True
+
+    assert not failed

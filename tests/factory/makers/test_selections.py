@@ -17,14 +17,21 @@ def test_cycle():
     # Configured to cycle through a list of python types
     maker = selection_makers.Cycle(['foo', 'bar', 'zee'])
 
-    for i, value in enumerate(['foo', 'bar', 'zee']):
+    index = 0
+    for value in ['foo', 'bar', 'zee', 'foo', 'bar']:
+
         # Check the assembled result
         assembled = maker._assemble()
-        assert assembled == [i, None]
+        assert assembled == [index, None]
 
         # Check the finished result
         finished = maker._finish(assembled)
         assert finished == value
+
+        # Track the index
+        index += 1
+        if index >= 3:
+            index = 0
 
     # Configured to cycle throguh a list of makers
     maker = selection_makers.Cycle([
@@ -33,15 +40,32 @@ def test_cycle():
         makers.Static('zee')
         ])
 
-    for i, value in enumerate(['foo', 'bar', 'zee']):
+    index = 0
+    for value in ['foo', 'bar', 'zee', 'foo', 'bar']:
+
         # Check the assembled result
         assembled = maker._assemble()
-        assert assembled == [i, value]
+        assert assembled == [index, value]
 
         # Check the finished result
         finished = maker._finish(assembled)
         assert finished == value
 
+        # Track the index
+        index += 1
+        if index >= 3:
+            index = 0
+
+    # Reset should reset the cycle to the start
+    maker.reset()
+
+    # Check the assembled result
+    assembled = maker._assemble()
+    assert assembled == [0, 'foo']
+
+    # Check the finished result
+    finished = maker._finish(assembled)
+    assert finished == 'foo'
 
 def test_one_of():
     """

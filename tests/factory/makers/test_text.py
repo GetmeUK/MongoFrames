@@ -192,7 +192,7 @@ def test_sequence():
         finished = maker._finish(assembled)
         assert finished == 'foo-{index}'.format(index=i + 5)
 
-    # Reset after being used to generate data
+    # Reset should reset the sequence to start from
     maker.reset()
 
     # Check the assembled result
