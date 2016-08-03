@@ -28,7 +28,7 @@ class Quota:
 
 class Gauss(Quota):
     """
-    Return a random quota using a Gaussian distrobution.
+    Return a random quota using a Gaussian distribution.
     """
 
     def __init__(self, mu, sigma):
