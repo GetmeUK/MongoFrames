@@ -38,7 +38,7 @@ class Preset:
         """
 
         if hasattr(self._pattern, 'match'):
-            return self._pattern.match(field_name)
+            return self._pattern.match(field_name) is not None
 
         return self._pattern == field_name
 
