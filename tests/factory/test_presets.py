@@ -4,8 +4,10 @@ from mongoframes.factory import makers
 from mongoframes.factory import presets
 
 
-def test_read_only_props():
-    """The `Preset` read-only properties should return the correct values"""
+def test_preset_read_only_props():
+    """
+    The `Preset` class read-only properties should return the correct values.
+    """
 
     maker = makers.Static('bar')
     preset = presets.Preset('foo', maker)
@@ -14,7 +16,7 @@ def test_read_only_props():
     assert preset.pattern == 'foo'
     assert preset.maker == maker
 
-def test_match():
+def test_preset_match():
     """
     The `Preset.match` method should return true if a field name matches a
     pattern.
@@ -30,7 +32,7 @@ def test_match():
     assert preset.match('foobar') == True
     assert preset.match('barfoo') == False
 
-def test_find():
+def test_preset_find():
     """
     The `Preset.find` class method should return the first preset that matches
     the given field name.
