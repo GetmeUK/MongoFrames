@@ -32,7 +32,7 @@ def test_blueprint_assemble():
     meta_fields = {'dummy_prop'}
     blueprint = blueprints.Blueprint(Dragon, instructions, meta_fields)
 
-    # Check the assembled output of the blue print is as expected
+    # Check the assembled output of the blueprint is as expected
     assembled = blueprint.assemble(my_presets)
 
     assert assembled == {
@@ -56,7 +56,7 @@ def test_blueprint_finish():
     meta_fields = {'dummy_prop'}
     blueprint = blueprints.Blueprint(Dragon, instructions, meta_fields)
 
-    # Check the finished output of the blue print is as expected
+    # Check the finished output of the blueprint is as expected
     finished, meta_finished = blueprint.finish(
         blueprint.assemble(my_presets),
         my_presets

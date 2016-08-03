@@ -34,10 +34,10 @@ class Dragon(Frame):
     _private_fields = {'breed'}
 
     def _get_dummy_prop(self):
-        pass
+        return self._dummy_prop
 
     def _set_dummy_prop(self, value):
-        pass
+        self._dummy_prop = True
 
     dummy_prop = property(_get_dummy_prop, _set_dummy_prop)
 
