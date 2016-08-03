@@ -38,18 +38,18 @@ def test_preset_find():
     the given field name.
     """
     my_presets = [
-        Preset('foo', makers.Static('foo')),
-        Preset('bar', makers.Static('bar')),
-        Preset('zee', makers.Static('zee')),
-        Preset(re.compile('foo.*'), makers.Static('foo*')),
-        Preset(re.compile('bar.*'), makers.Static('bar*')),
-        Preset(re.compile('zee.*'), makers.Static('zee*'))
+        presets.Preset('foo', makers.Static('foo')),
+        presets.Preset('bar', makers.Static('bar')),
+        presets.Preset('zee', makers.Static('zee')),
+        presets.Preset(re.compile('foo.*'), makers.Static('foo*')),
+        presets.Preset(re.compile('bar.*'), makers.Static('bar*')),
+        presets.Preset(re.compile('zee.*'), makers.Static('zee*'))
         ]
 
     # Check that `Preset.find` returns the expected presets
-    assert Preset.find(my_presets, 'foo') == my_presets[0]
-    assert Preset.find(my_presets, 'bar') == my_presets[1]
-    assert Preset.find(my_presets, 'zee') == my_presets[2]
-    assert Preset.find(my_presets, 'foo1') == my_presets[3]
-    assert Preset.find(my_presets, 'bar2') == my_presets[4]
-    assert Preset.find(my_presets, 'zee3') == my_presets[5]
+    assert presets.Preset.find(my_presets, 'foo') == my_presets[0]
+    assert presets.Preset.find(my_presets, 'bar') == my_presets[1]
+    assert presets.Preset.find(my_presets, 'zee') == my_presets[2]
+    assert presets.Preset.find(my_presets, 'foo1') == my_presets[3]
+    assert presets.Preset.find(my_presets, 'bar2') == my_presets[4]
+    assert presets.Preset.find(my_presets, 'zee3') == my_presets[5]
