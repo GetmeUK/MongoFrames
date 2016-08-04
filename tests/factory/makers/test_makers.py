@@ -1,3 +1,5 @@
+import re
+
 from mongoframes.factory import blueprints
 from mongoframes.factory import makers
 from mongoframes.factory import presets
@@ -61,6 +63,14 @@ def test_faker():
     # Check the finished result
     finished = maker._finish(assembled)
     assert finished in am_pm
+
+    # Configured with a different locale
+    maker = makers.Faker('postcode', locale='en_GB')
+
+    # Check the assembled result resembles a UK postcode
+    assembled = maker._assemble()
+
+    assert re.match('(\w+?\d{1,2}).*', assembled) and len(assembled) <= 8
 
 def test_lambda():
     """

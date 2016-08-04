@@ -36,13 +36,6 @@ class Maker:
     def _finish(self, value):
         return value
 
-    @staticmethod
-    def get_fake():
-        """Return a shared faker factory used to generate fake data"""
-        if not hasattr(Maker, '_fake'):
-            Maker._fake = faker.Factory.create()
-        return Maker._fake
-
 
 class DictOf(Maker):
     """
@@ -82,7 +75,9 @@ class Faker(Maker):
     http://fake-factory.readthedocs.io/)
     """
 
-    def __init__(self, provider, assembler=True, **kwargs):
+    default_locale = 'en_US'
+
+    def __init__(self, provider, assembler=True, locale=None, **kwargs):
 
         # The provider that will be used to generate the value
         self._provider = provider
@@ -91,18 +86,30 @@ class Faker(Maker):
         # or _finish (False).
         self._assembler = assembler
 
+        # The locale that will be used by the faker factory
+        self._locale = locale or self.default_locale
+
         # The keyword arguments for the provider
         self._kwargs = kwargs
 
     def _assemble(self):
         if not self._assembler:
             return None
-        return getattr(self.get_fake(), self._provider)(**self._kwargs)
+        provider = getattr(self.get_fake(self._locale), self._provider)
+        return provider(**self._kwargs)
 
     def _finish(self, value):
         if self._assembler:
             return value
-        return getattr(self.get_fake(), self._provider)(**self._kwargs)
+        provider = getattr(self.get_fake(self._locale), self._provider)
+        return provider(**self._kwargs)
+
+    @staticmethod
+    def get_fake(locale):
+        """Return a shared faker factory used to generate fake data"""
+        if not hasattr(Maker, '_fake_' + locale):
+            Faker._fake = faker.Factory.create(locale)
+        return Faker._fake
 
 
 class Lambda(Maker):
