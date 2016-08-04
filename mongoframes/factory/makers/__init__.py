@@ -105,8 +105,11 @@ class Faker(Maker):
         return provider(**self._kwargs)
 
     @staticmethod
-    def get_fake(locale):
+    def get_fake(locale=None):
         """Return a shared faker factory used to generate fake data"""
+        if locale is None:
+            locale = Faker.default_locale
+
         if not hasattr(Maker, '_fake_' + locale):
             Faker._fake = faker.Factory.create(locale)
         return Faker._fake

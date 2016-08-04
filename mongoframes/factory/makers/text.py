@@ -2,7 +2,7 @@ import random
 import re
 import string
 
-from mongoframes.factory.makers import Maker
+from mongoframes.factory.makers import Faker, Maker
 
 __all__ = [
     'Code',
@@ -103,16 +103,16 @@ class Lorem(Maker):
         quantity = int(self._quantity)
 
         if self._text_type == 'body':
-            return '\n'.join(self.get_fake().paragraphs(nb=quantity))
+            return '\n'.join(Faker.get_fake().paragraphs(nb=quantity))
 
         if self._text_type == 'paragraph':
-            return self.get_fake().paragraph(
+            return Faker.get_fake().paragraph(
                 nb_sentences=quantity,
                 variable_nb_sentences=False
                 )
 
         if self._text_type == 'sentence':
-            return self.get_fake().sentence(
+            return Faker.get_fake().sentence(
                 nb_words=quantity,
                 variable_nb_words=False
                 )
