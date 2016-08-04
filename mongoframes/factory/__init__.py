@@ -92,7 +92,7 @@ class Factory:
 
             frames.append(frame)
 
-        # Insert the documents (only if the frame class
+        # Insert the documents
         signal('fake').send(blueprint.frame_cls, frames=frames)
         frames = blueprint.frame_cls.insert_many(frames)
         signal('faked').send(blueprint.frame_cls, frames=frames)
