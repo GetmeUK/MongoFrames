@@ -7,15 +7,18 @@ from mongoframes.factory import presets
 from tests.fixtures import *
 
 
-def test_blueprint_read_only_props():
+def test_blueprint_defaults():
     """
-    The `Blueprint` class read-only properties should return the correct values.
+    Defining a `Blueprint` class should provide some defaults.
     """
 
-    blueprint = blueprints.Blueprint(Dragon)
+    class DragonBlueprint(blueprints.Blueprint):
 
-    # Check the read-only properties of the preset return the correct values
-    assert blueprint.frame_cls == Dragon
+        _frame_cls = Dragon
+
+    assert DragonBlueprint._frame_cls == Dragon
+    assert DragonBlueprint._instructions == {}
+    assert DragonBlueprint._meta_fields == set([])
 
 def test_blueprint_assemble():
     """
@@ -24,16 +27,19 @@ def test_blueprint_assemble():
     """
 
     # Configure the blueprint
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Burt')
+        dummy_prop = makers.Static('foo')
+
+    # Build a list if presets
     my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
-    instructions = {
-        'name': makers.Static('Burt'),
-        'dummy_prop': makers.Static('foo')
-        }
-    meta_fields = {'dummy_prop'}
-    blueprint = blueprints.Blueprint(Dragon, instructions, meta_fields)
 
     # Check the assembled output of the blueprint is as expected
-    assembled = blueprint.assemble(my_presets)
+    assembled = DragonBlueprint.assemble(my_presets)
 
     assert assembled == {
         'breed': 'Fire-drake',
@@ -48,17 +54,20 @@ def test_blueprint_finish():
     """
 
     # Configure the blueprint
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Burt')
+        dummy_prop = makers.Static('foo')
+
+    # Build a list if presets
     my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
-    instructions = {
-        'name': makers.Static('Burt'),
-        'dummy_prop': makers.Static('foo')
-        }
-    meta_fields = {'dummy_prop'}
-    blueprint = blueprints.Blueprint(Dragon, instructions, meta_fields)
 
     # Check the finished output of the blueprint is as expected
-    finished, meta_finished = blueprint.finish(
-        blueprint.assemble(my_presets),
+    finished, meta_finished = DragonBlueprint.finish(
+        DragonBlueprint.assemble(my_presets),
         my_presets
         )
 
@@ -72,23 +81,26 @@ def test_blueprint_reset(mocker):
     """
 
     # Configure the blueprint
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Burt')
+        dummy_prop = makers.Static('foo')
+
+    # Build a list if presets
     my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
-    instructions = {
-        'name': makers.Static('Burt'),
-        'dummy_prop': makers.Static('foo')
-        }
-    meta_fields = {'dummy_prop'}
-    blueprint = blueprints.Blueprint(Dragon, instructions, meta_fields)
 
     # Spy on the maker reset methods
     mocker.spy(my_presets[0].maker, 'reset')
-    mocker.spy(instructions['name'], 'reset')
-    mocker.spy(instructions['dummy_prop'], 'reset')
+    mocker.spy(DragonBlueprint._instructions['name'], 'reset')
+    mocker.spy(DragonBlueprint._instructions['dummy_prop'], 'reset')
 
     # Reset the blueprint
-    blueprint.reset(my_presets)
+    DragonBlueprint.reset(my_presets)
 
     # Check each maker reset method was called
     assert my_presets[0].maker.reset.call_count == 1
-    assert instructions['name'].reset.call_count == 1
-    assert instructions['dummy_prop'].reset.call_count == 1
+    assert DragonBlueprint._instructions['name'].reset.call_count == 1
+    assert DragonBlueprint._instructions['dummy_prop'].reset.call_count == 1

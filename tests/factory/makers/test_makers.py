@@ -216,15 +216,17 @@ def test_sub_factory(mocker):
     """
 
     # Define a blueprint
-    inventory_blueprint = blueprints.Blueprint(Inventory, {
-        'skulls': makers.Static(100),
-        })
+    class InventoryBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Inventory
+
+        skulls = makers.Static(100)
 
     # Define a preset
     preset = presets.Preset('gold', makers.Static(10))
 
     # Configure the maker
-    maker = makers.SubFactory(inventory_blueprint, [preset])
+    maker = makers.SubFactory(InventoryBlueprint, [preset])
 
     # Check the assembled result
     assembled = maker._assemble()
@@ -236,9 +238,9 @@ def test_sub_factory(mocker):
     assert finished._document == {'gold': 10, 'skulls': 100}
 
     # Reset should reset the sub factories associated blueprint
-    mocker.spy(inventory_blueprint, 'reset')
+    mocker.spy(InventoryBlueprint, 'reset')
     maker.reset()
-    assert inventory_blueprint.reset.call_count == 1
+    assert InventoryBlueprint.reset.call_count == 1
 
 def test_unique():
     """

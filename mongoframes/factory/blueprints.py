@@ -1,3 +1,5 @@
+from blinker import signal
+
 from mongoframes.factory.presets import Preset
 from mongoframes.factory.makers import Maker
 
@@ -12,18 +14,25 @@ class _BlueprintMeta(type):
 
     def __new__(meta, name, bases, dct):
 
-        # Collect all instructions for the blueprint
+        # Collect all instructions for the blueprint. Each instruction is stored
+        # as a key value pair in a dictionary where the name represents the
+        # field the instruction refers to and the value is a `Maker` type for
+        # generating a value for that field.
         dct['_instructions'] = dct.get('_instructions') or {}
         for k, v in dct.items():
             if isinstance(v, Maker):
                 dct['_instructions'][k] = v
 
-        # Check the blueprint has a frame class associated with it
-        assert '_frame_cls' in dct, 'No `_frame_cls` defined for the blueprint'
+        # Check the blueprint has a frame class associated with it. The `Frame`
+        # class will be used to insert the document into the database.
+        assert '_frame_cls' in dct or len(bases) == 0, \
+                'No `_frame_cls` defined for the blueprint'
 
         # Check for a set of meta fields or define an empty set if there isn't
-        # one.
-        if '_frame_cls' not in dct
+        # one. Meta-fields determine a set of one or more fields that should be
+        # set when generating a document but which are not defined in the
+        # assoicated `Frame` classes `_fields` attribute.
+        if '_meta_fields' not in dct:
             dct['_meta_fields'] = set([])
 
         return super(_BlueprintMeta, meta).__new__(meta, name, bases, dct)
@@ -35,7 +44,28 @@ class Blueprint(metaclass=_BlueprintMeta):
     collection represented by a `Frame` class.
     """
 
+    def __init__(self):
+        assert False, \
+            'Blueprint classes should remain static and not be initialized'
+
     # Public methods
+
+    @classmethod
+    def get_frame_cls(cls):
+        """Return the `Frame` type class for the blueprint"""
+        return cls._frame_cls
+
+    @classmethod
+    def get_instructions(cls):
+        """Return the instuctions for the blueprint"""
+        return dict(cls._instructions)
+
+    @classmethod
+    def get_meta_fields(cls):
+        """Return the meta-fields for the blueprint"""
+        return cls._meta_fields_cls
+
+    # Factory methods
 
     @classmethod
     def assemble(cls, presets=None):
@@ -44,7 +74,7 @@ class Blueprint(metaclass=_BlueprintMeta):
 
         document = {}
 
-        fields = cls._frame_cls._fields | cls._meta_fields
+        fields = cls._frame_cls.get_fields() | cls._meta_fields
 
         for field_name in fields:
 
@@ -113,6 +143,20 @@ class Blueprint(metaclass=_BlueprintMeta):
         for preset in presets:
             preset.maker.reset()
 
-    # We can check for on fake, on faked clsasmethods and if they exist we can
-    # auto add them as listeners to the class (if they are not already
-    # registered - do we need to check?)
+    # Events
+
+    @classmethod
+    def on_fake(cls, frames):
+        """Hook called before frames are added"""
+
+        # By default the hook will simply trigger a `fake` event against the
+        # frame. This allows the overriding method to control this behaviour.
+        signal('fake').send(cls._frame_cls, frames=frames)
+
+    @classmethod
+    def on_faked(cls, frames):
+        """Hook called after frames are added"""
+
+        # By default the hook will simply trigger a `fake` event against the
+        # frame. This allows the overriding method to control this behaviour.
+        signal('faked').send(cls._frame_cls, frames=frames)

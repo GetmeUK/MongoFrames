@@ -25,19 +25,20 @@ def test_factory_assemble():
     """
 
     # Configure the blueprint
-    instructions = {
-        'name': makers.Static('Burt'),
-        'dummy_prop': makers.Static('foo')
-        }
-    meta_fields = {'dummy_prop'}
-    blueprint = blueprints.Blueprint(Dragon, instructions, meta_fields)
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Burt')
+        dummy_prop = makers.Static('foo')
 
     # Configure the factory
     my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
     factory = Factory(my_presets)
 
     # Assemble a list of documents using the factory
-    documents = factory.assemble(blueprint, quotas.Quota(10))
+    documents = factory.assemble(DragonBlueprint, quotas.Quota(10))
 
     # Check the assembled output of the factory is as expected
     for document in documents:
@@ -56,22 +57,23 @@ def test_factory_finish():
     """
 
     # Configure the blueprint
-    instructions = {
-        'name': makers.Static('Burt'),
-        'dummy_prop': makers.Static('foo')
-        }
-    meta_fields = {'dummy_prop'}
-    blueprint = blueprints.Blueprint(Dragon, instructions, meta_fields)
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Burt')
+        dummy_prop = makers.Static('foo')
 
     # Configure the factory
     my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
     factory = Factory(my_presets)
 
     # Assemble a list of documents using the factory
-    documents = factory.assemble(blueprint, quotas.Quota(10))
+    documents = factory.assemble(DragonBlueprint, quotas.Quota(10))
 
     # Finish the assembled documents
-    documents = factory.finish(blueprint, documents)
+    documents = factory.finish(DragonBlueprint, documents)
 
     # Check the assembled output of the factory is as expected
     for document in documents:
@@ -87,19 +89,20 @@ def test_factory_populate(mongo_client, mocker):
     """
 
     # Configure the blueprint
-    instructions = {
-        'name': makers.Static('Burt'),
-        'dummy_prop': makers.Static('foo')
-        }
-    meta_fields = {'dummy_prop'}
-    blueprint = blueprints.Blueprint(Dragon, instructions, meta_fields)
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Burt')
+        dummy_prop = makers.Static('foo')
 
     # Configure the factory
     my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
     factory = Factory(my_presets)
 
     # Assemble a list of documents using the factory
-    documents = factory.assemble(blueprint, quotas.Quota(10))
+    documents = factory.assemble(DragonBlueprint, quotas.Quota(10))
 
     # Add listeners for fake and faked
     Dragon._on_fake = lambda sender, frames: print('qwe')
@@ -112,7 +115,7 @@ def test_factory_populate(mongo_client, mocker):
     Dragon.listen('faked', Dragon._on_faked)
 
     # Populate the database with our fake documents
-    frames = factory.populate(blueprint, documents)
+    frames = factory.populate(DragonBlueprint, documents)
 
     # Check each maker reset method was called
     assert Dragon._on_fake.call_count == 1

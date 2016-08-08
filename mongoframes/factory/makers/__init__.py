@@ -270,7 +270,7 @@ class SubFactory(Maker):
             )
 
         # Initialize the sub-frame
-        sub_frame = self._blueprint.frame_cls(frame_document)
+        sub_frame = self._blueprint.get_frame_cls()(frame_document)
 
         # Apply any meta fields
         for key, value in meta_document.items():

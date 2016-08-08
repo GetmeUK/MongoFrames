@@ -720,3 +720,11 @@ def test_get_collection(mongo_client):
 def test_get_db(mongo_client):
     """Return the database for the collection"""
     assert Dragon.get_db() == mongo_client['mongoframes_test']
+
+def test_get_fields(mongo_client):
+    """Return the fields for the class"""
+    assert Dragon.get_fields() == {'_id', 'name', 'breed'}
+
+def test_get_private_fields(mongo_client):
+    """Return the private fields for the class"""
+    assert Dragon.get_private_fields() == {'breed'}

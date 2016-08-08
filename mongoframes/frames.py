@@ -143,6 +143,18 @@ class _BaseFrame:
             if keys[-1] in child_dict:
                 child_dict.pop(keys[-1])
 
+    # Public methods
+
+    @classmethod
+    def get_fields(cls):
+        """Return the set of fields defined for the class"""
+        return set(cls._fields)
+
+    @classmethod
+    def get_private_fields(cls):
+        """Return the set of private fields defined for the class"""
+        return set(cls._private_fields)
+
 
 class _FrameMeta(type):
     """

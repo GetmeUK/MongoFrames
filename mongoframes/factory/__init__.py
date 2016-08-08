@@ -1,5 +1,4 @@
 import copy
-from blinker import signal
 
 __all__ = ['Factory']
 
@@ -84,7 +83,7 @@ class Factory:
             [frame_document, meta_document] = document
 
             # Initialize the frame
-            frame = blueprint.frame_cls(frame_document)
+            frame = blueprint.get_frame_cls()(frame_document)
 
             # Apply any meta fields
             for key, value in meta_document.items():
@@ -93,8 +92,8 @@ class Factory:
             frames.append(frame)
 
         # Insert the documents
-        signal('fake').send(blueprint.frame_cls, frames=frames)
-        frames = blueprint.frame_cls.insert_many(frames)
-        signal('faked').send(blueprint.frame_cls, frames=frames)
+        blueprint.on_fake(frames)
+        frames = blueprint.get_frame_cls().insert_many(frames)
+        blueprint.on_faked(frames)
 
         return frames
