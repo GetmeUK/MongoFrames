@@ -18,7 +18,7 @@ class ImageURL(Maker):
         background='CCCCCC',
         foreground='8D8D8D',
         options=None,
-        service_url='://fakeimg.pl',
+        service_url='//fakeimg.pl',
         service_formatter=None
         ):
 

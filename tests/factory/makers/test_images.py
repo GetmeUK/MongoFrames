@@ -22,7 +22,7 @@ def test_image_url():
         )
 
     # Check the assembled result
-    image_url = '://fakeimg.pl/100x200/DDDDDD/888888/?text=foo'
+    image_url = '//fakeimg.pl/100x200/DDDDDD/888888/?text=foo'
     assembled = maker._assemble()
     assert assembled == image_url
 
@@ -69,12 +69,12 @@ def test_image_url():
         background='DDDDDD',
         foreground='888888',
         options={'text': 'foo', 'format': 'png'},
-        service_url='://placehold.it',
+        service_url='//placehold.it',
         service_formatter=placehold_it_formatter
         )
 
     # Check the assembled result
-    image_url = '://placehold.it/100x200/DDDDDD/888888.png?text=foo'
+    image_url = '//placehold.it/100x200/DDDDDD/888888.png?text=foo'
     assembled = maker._assemble()
     assert assembled == image_url
 
