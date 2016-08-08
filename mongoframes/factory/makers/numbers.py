@@ -1,3 +1,5 @@
+import random
+
 from mongoframes.factory.makers import Maker
 
 __all__ = [
@@ -22,3 +24,25 @@ class Counter(Maker):
         value = self._counter
         self._counter += int(self._step)
         return value
+
+
+class Float(Maker):
+    """
+    Generate a random float between two values.
+    """
+
+    def __init__(self, min_value, max_value):
+        self._min_value = min_value
+        self._max_value = max_value
+
+    def _assemble(self):
+        return random.uniform(float(self._min_value), float(self._max_value))
+
+
+class Int(Float):
+    """
+    Generate a random int between two values.
+    """
+
+    def _assemble(self):
+        return random.randint(int(self._min_value), int(self._max_value))
