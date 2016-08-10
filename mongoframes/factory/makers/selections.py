@@ -1,12 +1,15 @@
 from functools import reduce
 import itertools
+import math
 import random
 
 from mongoframes.factory.makers import Maker
+from mongoframes import ASC
 
 __all__ = [
     'Cycle',
     'OneOf',
+    'RandomReference',
     'SomeOf'
     ]
 
@@ -107,6 +110,48 @@ class OneOf(Maker):
             if position + weight >= choice:
                 return i
             position += weight
+
+
+class RandomReference(Maker):
+    """
+    Pick a reference document at random from a collection optionally applying a
+    constraint.
+    """
+
+    def __init__(self, frame_cls, constraint=None):
+
+        # The frame class that will be used to select a reference with
+        self._frame_cls = frame_cls
+
+        # The constraint applied when select a reference document
+        self._constraint = constraint or {}
+
+    def _assemble(self):
+        # Select a random float that will be used to select a reference document
+        # by it's position.
+        return random.random()
+
+    def _finish(self, value):
+        # Count the number of documents available to pick from
+        total_documents = self._frame_cls.count(self._constraint)
+
+        # Calculate the position of the document we've picked
+        position = math.floor(total_documents * value)
+
+        # Select the document
+        document = self._frame_cls.one(
+            self._constraint,
+            limit=1,
+            skip=position,
+            sort=[('_id', ASC)],
+            projection={'_id': True}
+            )
+
+        # Check the document was found
+        if document:
+            return document._id
+
+        return None
 
 
 class SomeOf(Maker):
@@ -257,3 +302,5 @@ than or equal to the number of weights it's taken from."
                 del weight_indexes[sample]
 
         return samples
+
+

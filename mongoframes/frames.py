@@ -309,9 +309,6 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         # Ensure all documents have been converted to frames
         frames = cls._ensure_frames(documents)
 
-        assert len([f for f in frames if '_id' in f._document]) == 0, \
-                "Can't insert documents with `_id`s"
-
         # Send insert signal
         signal('insert').send(cls, frames=frames)
 

@@ -4,6 +4,7 @@ import random
 from mongoframes.factory import makers
 from mongoframes.factory import quotas
 from mongoframes.factory.makers import selections as selection_makers
+from mongoframes.queries import Q
 
 from tests.fixtures import *
 
@@ -145,6 +146,36 @@ def test_one_of():
     assert int(round(counts['bar'] / 100)) == 3
     assert int(round(counts['zee'] / 100)) == 6
 
+def test_random_reference(mongo_client, example_dataset_many):
+    """
+    `RandomReference` makers should return the Id of a document from from the
+    specified `Frame`s collection at random.
+    """
+
+    # Seed the random generator to ensure test results are consistent
+    random.seed(110679)
+
+    # Configured without a constraint
+    maker = selection_makers.RandomReference(ComplexDragon)
+
+    # Check the assembled result
+    assembled = maker._assemble()
+    assert math.floor(assembled * 100) == 77
+
+    # Check the finished result
+    finished = maker._finish(assembled)
+    assert finished == ComplexDragon.one(Q.name == 'Albert')._id
+
+    # Configured with a constraint
+    maker = selection_makers.RandomReference(ComplexDragon, Q.name != 'Albert')
+
+    # Check the assembled result
+    assembled = maker._assemble()
+    assert math.floor(assembled * 100) == 78
+
+    # Check the finished result
+    finished = maker._finish(assembled)
+    assert finished == ComplexDragon.one(Q.name == 'Fred')._id
 
 def test_some_of():
     """
