@@ -127,3 +127,49 @@ def test_factory_populate(mongo_client, mocker):
         assert frame.name == 'Burt'
         assert frame.breed == 'Fire-drake'
         assert frame.dummy_prop
+
+
+def test_factory_reassemble():
+    """
+    The `Blueprint.reassemble` method should reassemble the given fields in a
+    list of preassembled documents/dictionaries.
+    """
+
+    # Configure the blueprint
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Burt')
+        dummy_prop = makers.Static('foo')
+
+    # Configure the factory
+    my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
+    factory = Factory(my_presets)
+
+    # Assemble a list of documents using the factory
+    documents = factory.assemble(DragonBlueprint, quotas.Quota(10))
+
+    # Re-configure the blueprint and factory
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Fred')
+        dummy_prop = makers.Static('bar')
+
+    my_presets = [presets.Preset('breed', makers.Static('Cold-drake'))]
+    factory = Factory(my_presets)
+
+    # Reassemble the documents
+    factory.reassemble(DragonBlueprint, {'breed', 'name'}, documents)
+
+    # Check the reassembled output of the factory is as expected
+    for document in documents:
+        assert document == {
+            'breed': 'Cold-drake',
+            'dummy_prop': 'foo',
+            'name': 'Fred'
+            }

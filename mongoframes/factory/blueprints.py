@@ -126,6 +126,32 @@ class Blueprint(metaclass=_BlueprintMeta):
         return (document_copy, meta_document)
 
     @classmethod
+    def reassemble(cls, fields, document, presets=None):
+        """
+        Take a pre-assembled document and reassemble the given set of fields
+        for it.
+        """
+
+        # Filter the field list to just those we can set against the frame
+        fields = [f for f in fields \
+            if f in cls._frame_cls.get_fields() | cls._meta_fields]
+
+        for field_name in fields:
+
+            # Use a dedicated instruction if we have one
+            if field_name in cls._instructions:
+                maker = cls._instructions[field_name]
+                if maker:
+                    document[field_name] = maker()
+                continue
+
+            # Check for a preset
+            preset = Preset.find(presets, field_name)
+            if preset:
+                document[field_name] = preset.maker()
+                continue
+
+    @classmethod
     def reset(cls, presets=None):
         """
         Reset the blueprint. Blueprints are typically reset before being used to

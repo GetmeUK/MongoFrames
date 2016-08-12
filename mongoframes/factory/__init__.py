@@ -59,7 +59,7 @@ class Factory:
         return documents
 
     def finish(self, blueprint, documents):
-        """Apply finishing to a list of pre-assembled documents"""
+        """Apply finishing to a list of pre-assembled fake documents"""
 
         # Reset the blueprint
         blueprint.reset()
@@ -97,3 +97,20 @@ class Factory:
         blueprint.on_faked(frames)
 
         return frames
+
+    def reassemble(self, blueprint, fields, documents):
+        """
+        Reassemble a the given set of fields for a list of pre-assembed fake
+        documents.
+
+        NOTE: Reassembly is done in place, since the data you send the method
+        should be JSON type safe if you need to retain a the existing documents
+        it is recommended that you copy them using `copy.deepcopy`.
+        """
+
+        # Reset the blueprint
+        blueprint.reset()
+
+        # Reassemble the documents
+        for document in documents:
+            blueprint.reassemble(fields, document, self.presets)

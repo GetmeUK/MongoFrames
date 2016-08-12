@@ -66,13 +66,54 @@ def test_blueprint_finish():
     my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
 
     # Check the finished output of the blueprint is as expected
-    finished, meta_finished = DragonBlueprint.finish(
+    finished, meta_finished = Dragon0Blueprint.finish(
         DragonBlueprint.assemble(my_presets),
         my_presets
         )
 
     assert finished == {'breed': 'Fire-drake', 'name': 'Burt'}
     assert meta_finished == {'dummy_prop': 'foo'}
+
+def test_blueprint_reassemble():
+    """
+    The `Blueprint.reassemble` method should reassemble the given fields in a
+    preassembled document/dictionary for the blueprint.
+    """
+
+    # Configure the blueprint
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Burt')
+        dummy_prop = makers.Static('foo')
+
+    # Build a list if presets
+    my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
+
+    # Check the assembled output of the blueprint is as expected
+    assembled = DragonBlueprint.assemble(my_presets)
+
+    # Re-configure the blueprint and presets
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Fred')
+        dummy_prop = makers.Static('bar')
+
+    my_presets = [presets.Preset('breed', makers.Static('Cold-drake'))]
+
+    # Check the reassembled output for the blueprint is as expected
+    DragonBlueprint.reassemble({'breed', 'name'}, assembled, my_presets)
+
+    assert assembled == {
+        'breed': 'Cold-drake',
+        'dummy_prop': 'foo',
+        'name': 'Fred'
+        }
 
 def test_blueprint_reset(mocker):
     """

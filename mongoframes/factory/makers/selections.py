@@ -264,7 +264,7 @@ class SomeOf(Maker):
                 # Add the probability of picking i as the last pick
                 pick_probabilities += [weight_i / pick_weight_sum]
 
-                # Multiple all the probabilities for the permutation together
+                # Multiply all the probabilities for the permutation together
                 permutation_probability = reduce(
                     lambda x, y: x * y, pick_probabilities
                     )
