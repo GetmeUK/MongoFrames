@@ -66,7 +66,7 @@ def test_blueprint_finish():
     my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
 
     # Check the finished output of the blueprint is as expected
-    finished, meta_finished = Dragon0Blueprint.finish(
+    finished, meta_finished = DragonBlueprint.finish(
         DragonBlueprint.assemble(my_presets),
         my_presets
         )
