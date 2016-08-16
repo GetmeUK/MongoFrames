@@ -33,16 +33,6 @@ class Factory:
         `Frame` classes to modify the insert behaviour for factories.
     """
 
-    def __init__(self, presets=None):
-        # A list of presets for the factory
-        self._presets = presets or []
-
-    # Read-only properties
-
-    @property
-    def presets(self):
-        return self._presets
-
     # Public methods
 
     def assemble(self, blueprint, quota):
@@ -54,7 +44,7 @@ class Factory:
         # Assemble the documents
         documents = []
         for i in range(0, int(quota)):
-            documents.append(blueprint.assemble(self.presets))
+            documents.append(blueprint.assemble())
 
         return documents
 
@@ -67,7 +57,7 @@ class Factory:
         # Finish the documents
         finished = []
         for document in documents:
-            finished.append(blueprint.finish(document, self.presets))
+            finished.append(blueprint.finish(document))
 
         return finished
 
@@ -80,10 +70,14 @@ class Factory:
         # Convert the documents to frame instances
         frames = []
         for document in documents:
-            [frame_document, meta_document] = document
+            # Separate out any meta fields
+            meta_document = {}
+            for field_name in blueprint._meta_fields:
+                meta_document[field_name] = document[field_name]
+                document.pop(field_name)
 
             # Initialize the frame
-            frame = blueprint.get_frame_cls()(frame_document)
+            frame = blueprint.get_frame_cls()(document)
 
             # Apply any meta fields
             for key, value in meta_document.items():
@@ -113,4 +107,4 @@ class Factory:
 
         # Reassemble the documents
         for document in documents:
-            blueprint.reassemble(fields, document, self.presets)
+            blueprint.reassemble(fields, document)

@@ -21,6 +21,7 @@ class ImageURL(Maker):
         service_url='//fakeimg.pl',
         service_formatter=None
         ):
+        super().__init__()
 
         # The size of the image to generate
         self._width = width

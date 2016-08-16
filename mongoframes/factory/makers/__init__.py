@@ -1,3 +1,4 @@
+import contextlib
 import random
 
 import faker
@@ -21,10 +22,20 @@ class Maker:
     A base class for all Maker classes.
     """
 
+    def __init__(self):
+
+        # The document the maker is assembling/finishing data for
+        self._document = None
+
     def __call__(self, *args):
         if args:
             return self._finish(*args)
         return self._assemble()
+
+    @property
+    def document(self):
+        # Return the target document
+        return self._document
 
     def reset(self):
         """Reset the maker instance"""
@@ -36,6 +47,12 @@ class Maker:
     def _finish(self, value):
         return value
 
+    @contextlib.contextmanager
+    def target(self, document):
+        self._document = document
+        yield
+        self._document = None
+
 
 class DictOf(Maker):
     """
@@ -44,6 +61,7 @@ class DictOf(Maker):
     """
 
     def __init__(self, table):
+        super().__init__()
 
         # The table of keyword arguments that will be used to generate the
         # dictionary.
@@ -78,6 +96,7 @@ class Faker(Maker):
     default_locale = 'en_US'
 
     def __init__(self, provider, assembler=True, locale=None, **kwargs):
+        super().__init__()
 
         # The provider that will be used to generate the value
         self._provider = provider
@@ -121,6 +140,7 @@ class Lambda(Maker):
     """
 
     def __init__(self, func, assembler=True, finisher=False):
+        super().__init__()
 
         assert assembler or finisher, \
                 'Either `assembler` or `finisher` must be true for lambda'
@@ -151,6 +171,7 @@ class ListOf(Maker):
     """
 
     def __init__(self, maker, quantity, reset_maker=False):
+        super().__init__()
 
         # The maker used to generate each value in the list
         self._maker = maker
@@ -184,6 +205,7 @@ class Reference(Maker):
     """
 
     def __init__(self, frame_cls, field_name, value):
+        super().__init__()
 
         # The `Frame` class that will be used to obtain the referenced document
         self._frame_cls = frame_cls
@@ -224,6 +246,7 @@ class Static(Maker):
     """
 
     def __init__(self, value, assembler=True):
+        super().__init__()
 
         # The value to return
         self._value = value
@@ -248,29 +271,30 @@ class SubFactory(Maker):
     A maker that makes sub-documents.
     """
 
-    def __init__(self, blueprint, presets=None):
+    def __init__(self, blueprint):
+        super().__init__()
 
         # The blueprint to produce
         self._blueprint = blueprint
 
-        # A list of presets to apply with the blueprint
-        self._presets = presets or []
-
     def reset(self):
-        """Reset the associated blueprint and presets"""
-        self._blueprint.reset(self._presets)
+        """Reset the blueprint for the sub-factory"""
+        self._blueprint.reset()
 
     def _assemble(self):
-        return self._blueprint.assemble(self._presets)
+        return self._blueprint.assemble()
 
     def _finish(self, value):
-        [frame_document, meta_document] = self._blueprint.finish(
-            value,
-            self._presets
-            )
+        document = self._blueprint.finish(value)
+
+        # Separate out any meta fields
+        meta_document = {}
+        for field_name in self._blueprint._meta_fields:
+            meta_document[field_name] = document[field_name]
+            document.pop(field_name)
 
         # Initialize the sub-frame
-        sub_frame = self._blueprint.get_frame_cls()(frame_document)
+        sub_frame = self._blueprint.get_frame_cls()(document)
 
         # Apply any meta fields
         for key, value in meta_document.items():
@@ -290,6 +314,7 @@ class Unique(Maker):
         assembler=True,
         max_attempts=1000
         ):
+        super().__init__()
 
         # The maker that will generate values
         self._maker = maker

@@ -22,6 +22,7 @@ class Code(Maker):
     default_charset = string.ascii_uppercase + string.digits
 
     def __init__(self, length, charset=None):
+        super().__init__()
 
         # If no charset is provided use the default
         if not charset:
@@ -45,6 +46,7 @@ class Join(Maker):
     """
 
     def __init__(self, items, sep=' '):
+        super().__init__()
 
         # The list of makers/values that will be joined
         self._items = items
@@ -90,6 +92,8 @@ class Lorem(Maker):
     """
 
     def __init__(self, text_type, quantity):
+        super().__init__()
+
         # The type of text structure to generate
         self._text_type = text_type
 
@@ -147,6 +151,8 @@ class Markov(Maker):
     _dbs = {}
 
     def __init__(self, db, text_type, quantity):
+        super().__init__()
+
         # The database to generate the text from
         self._db = db
 
@@ -288,6 +294,8 @@ class Sequence(Maker):
     """
 
     def __init__(self, template, start_from=1):
+        super().__init__()
+
         self._template = template
         self._start_from = start_from
         self._index = start_from

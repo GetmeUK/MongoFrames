@@ -21,6 +21,7 @@ class Cycle(Maker):
     """
 
     def __init__(self, items):
+        super().__init__()
 
         # The list of makers/values to select from
         self._items = items
@@ -60,6 +61,7 @@ class OneOf(Maker):
     """
 
     def __init__(self, items, weights=None):
+        super().__init__()
 
         # The list of makers/values to select from
         self._items = items
@@ -119,6 +121,7 @@ class RandomReference(Maker):
     """
 
     def __init__(self, frame_cls, constraint=None):
+        super().__init__()
 
         # The frame class that will be used to select a reference with
         self._frame_cls = frame_cls
@@ -166,6 +169,7 @@ class SomeOf(Maker):
             weights=None,
             with_replacement=False
             ):
+        super().__init__()
 
         # The list of makers/values to select from
         self._items = items

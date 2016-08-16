@@ -1,6 +1,6 @@
 from blinker import signal
+from collections import OrderedDict
 
-from mongoframes.factory.presets import Preset
 from mongoframes.factory.makers import Maker
 
 __all__ = ['Blueprint']
@@ -19,6 +19,10 @@ class _BlueprintMeta(type):
         # field the instruction refers to and the value is a `Maker` type for
         # generating a value for that field.
         dct['_instructions'] = dct.get('_instructions') or {}
+
+        # Ensure the instructions are an ordered dictionary
+        dct['_instructions'] = OrderedDict(dct['_instructions'])
+
         for k, v in dct.items():
             if isinstance(v, Maker):
                 dct['_instructions'][k] = v
@@ -68,106 +72,50 @@ class Blueprint(metaclass=_BlueprintMeta):
     # Factory methods
 
     @classmethod
-    def assemble(cls, presets=None):
-        """Assemble a single document using the blueprint and presets"""
-        presets = presets or []
-
+    def assemble(cls):
+        """Assemble a single document using the blueprint"""
         document = {}
-
-        fields = cls._frame_cls.get_fields() | cls._meta_fields
-
-        for field_name in fields:
-
-            # Use a dedicated instruction if we have one
-            if field_name in cls._instructions:
-                maker = cls._instructions[field_name]
-                if maker:
-                    document[field_name] = maker()
-                continue
-
-            # Check for a preset
-            preset = Preset.find(presets, field_name)
-            if preset:
-                document[field_name] = preset.maker()
-                continue
-
+        for field_name, maker in cls._instructions.items():
+            with maker.target(document):
+                document[field_name] = maker()
         return document
 
     @classmethod
-    def finish(cls, document, presets=None):
+    def finish(cls, document):
         """
         Take a pre-assembled document and convert all dynamic values to static
         values.
         """
-        presets = presets or []
-
         document_copy = {}
-        meta_document = {}
         for field_name, value in document.items():
-
-            # Use a dedicated instruction if we have one
-            if field_name in cls._instructions:
-                maker = cls._instructions[field_name]
-                if field_name in cls._meta_fields:
-                    meta_document[field_name] = maker(value)
-                else:
-                    document_copy[field_name] = maker(value)
-                continue
-
-            # Check for a preset
-            preset = Preset.find(presets, field_name)
-            if preset:
-                if field_name in cls._meta_fields:
-                    meta_document[field_name] = preset.maker(value)
-                else:
-                    document_copy[field_name] = preset.maker(value)
-                continue
-
-        return (document_copy, meta_document)
+            maker = cls._instructions[field_name]
+            with maker.target(document):
+                document_copy[field_name] = maker(value)
+        return document_copy
 
     @classmethod
-    def reassemble(cls, fields, document, presets=None):
+    def reassemble(cls, fields, document):
         """
         Take a pre-assembled document and reassemble the given set of fields
-        for it.
+        for it in place.
         """
-
-        # Filter the field list to just those we can set against the frame
-        fields = [f for f in fields \
-            if f in cls._frame_cls.get_fields() | cls._meta_fields]
-
-        for field_name in fields:
-
-            # Use a dedicated instruction if we have one
-            if field_name in cls._instructions:
+        for field_name in cls._instructions:
+            if field_name in fields:
                 maker = cls._instructions[field_name]
-                if maker:
+                with maker.target(document):
                     document[field_name] = maker()
-                continue
-
-            # Check for a preset
-            preset = Preset.find(presets, field_name)
-            if preset:
-                document[field_name] = preset.maker()
-                continue
 
     @classmethod
-    def reset(cls, presets=None):
+    def reset(cls):
         """
         Reset the blueprint. Blueprints are typically reset before being used to
         assemble a quota of documents. Resetting a blueprint will in turn reset
         all the makers for the blueprint allowing internal counters and a like
         to be reset.
         """
-        presets = presets or []
-
         # Reset instructions
         for maker in cls._instructions.values():
             maker.reset()
-
-        # Check for a preset
-        for preset in presets:
-            preset.maker.reset()
 
     # Events
 

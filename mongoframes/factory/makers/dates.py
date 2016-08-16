@@ -19,6 +19,8 @@ class DateBetween(Maker):
     """
 
     def __init__(self, min_date, max_date):
+        super().__init__()
+
         # The date range between which a date will be selected
         self._min_date = min_date
         self._max_date = max_date

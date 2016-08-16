@@ -13,6 +13,8 @@ class Counter(Maker):
     """
 
     def __init__(self, start_from=1, step=1):
+        super().__init__()
+
         self._start_from = int(start_from)
         self._step = step
         self._counter = self._start_from
@@ -32,6 +34,8 @@ class Float(Maker):
     """
 
     def __init__(self, min_value, max_value):
+        super().__init__()
+
         self._min_value = min_value
         self._max_value = max_value
 

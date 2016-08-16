@@ -2,13 +2,28 @@ import re
 
 from mongoframes.factory import blueprints
 from mongoframes.factory import makers
-from mongoframes.factory import presets
 from mongoframes.factory import quotas
 from mongoframes.factory.makers import selections as selection_makers
 from mongoframes.factory.makers import text as text_makers
 
 from tests.fixtures import *
 
+
+def test_maker():
+    """
+    The base maker class should provide context for the current target document.
+    """
+
+    document = {'foo': 'bar'}
+    maker = makers.Maker()
+
+    # Check the target for the maker is correctly set using the `target` context
+    # method.
+    with maker.target(document):
+        assert maker.document == document
+
+    # Once the maker falls out of context check the document has been unset
+    assert maker.document == None
 
 def test_dict_of():
     """
@@ -211,8 +226,7 @@ def test_static():
 
 def test_sub_factory(mocker):
     """
-    `SubFactory` makers should return a sub-frame/document using a blueprint and
-    optionally a list of presets.
+    `SubFactory` makers should return a sub-frame/document using a blueprint.
     """
 
     # Define a blueprint
@@ -220,13 +234,11 @@ def test_sub_factory(mocker):
 
         _frame_cls = Inventory
 
+        gold = makers.Static(10)
         skulls = makers.Static(100)
 
-    # Define a preset
-    preset = presets.Preset('gold', makers.Static(10))
-
     # Configure the maker
-    maker = makers.SubFactory(InventoryBlueprint, [preset])
+    maker = makers.SubFactory(InventoryBlueprint)
 
     # Check the assembled result
     assembled = maker._assemble()

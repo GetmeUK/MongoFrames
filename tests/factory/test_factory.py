@@ -1,22 +1,10 @@
 from mongoframes.factory import Factory
 from mongoframes.factory import blueprints
 from mongoframes.factory import makers
-from mongoframes.factory import presets
 from mongoframes.factory import quotas
 
 from tests.fixtures import *
 
-
-def test_factory_read_only_props():
-    """
-    The `Factory` class read-only properties should return the correct values.
-    """
-
-    my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
-    factory = Factory(my_presets)
-
-    # Check the read-only properties of the preset return the correct values
-    assert factory.presets == my_presets
 
 def test_factory_assemble():
     """
@@ -31,11 +19,11 @@ def test_factory_assemble():
         _meta_fields = {'dummy_prop'}
 
         name = makers.Static('Burt')
+        breed = makers.Static('Fire-drake')
         dummy_prop = makers.Static('foo')
 
     # Configure the factory
-    my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
-    factory = Factory(my_presets)
+    factory = Factory()
 
     # Assemble a list of documents using the factory
     documents = factory.assemble(DragonBlueprint, quotas.Quota(10))
@@ -63,11 +51,11 @@ def test_factory_finish():
         _meta_fields = {'dummy_prop'}
 
         name = makers.Static('Burt')
+        breed = makers.Static('Fire-drake')
         dummy_prop = makers.Static('foo')
 
     # Configure the factory
-    my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
-    factory = Factory(my_presets)
+    factory = Factory()
 
     # Assemble a list of documents using the factory
     documents = factory.assemble(DragonBlueprint, quotas.Quota(10))
@@ -77,10 +65,11 @@ def test_factory_finish():
 
     # Check the assembled output of the factory is as expected
     for document in documents:
-        assert document == (
-            {'breed': 'Fire-drake', 'name': 'Burt'},
-            {'dummy_prop': 'foo'}
-            )
+        assert document == {
+            'breed': 'Fire-drake',
+            'name': 'Burt',
+            'dummy_prop': 'foo'
+            }
 
 def test_factory_populate(mongo_client, mocker):
     """
@@ -95,11 +84,11 @@ def test_factory_populate(mongo_client, mocker):
         _meta_fields = {'dummy_prop'}
 
         name = makers.Static('Burt')
+        breed = makers.Static('Fire-drake')
         dummy_prop = makers.Static('foo')
 
     # Configure the factory
-    my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
-    factory = Factory(my_presets)
+    factory = Factory()
 
     # Assemble a list of documents using the factory
     documents = factory.assemble(DragonBlueprint, quotas.Quota(10))
@@ -142,11 +131,11 @@ def test_factory_reassemble():
         _meta_fields = {'dummy_prop'}
 
         name = makers.Static('Burt')
+        breed = makers.Static('Fire-drake')
         dummy_prop = makers.Static('foo')
 
     # Configure the factory
-    my_presets = [presets.Preset('breed', makers.Static('Fire-drake'))]
-    factory = Factory(my_presets)
+    factory = Factory()
 
     # Assemble a list of documents using the factory
     documents = factory.assemble(DragonBlueprint, quotas.Quota(10))
@@ -158,10 +147,10 @@ def test_factory_reassemble():
         _meta_fields = {'dummy_prop'}
 
         name = makers.Static('Fred')
+        breed = makers.Static('Cold-drake')
         dummy_prop = makers.Static('bar')
 
-    my_presets = [presets.Preset('breed', makers.Static('Cold-drake'))]
-    factory = Factory(my_presets)
+    factory = Factory()
 
     # Reassemble the documents
     factory.reassemble(DragonBlueprint, {'breed', 'name'}, documents)
