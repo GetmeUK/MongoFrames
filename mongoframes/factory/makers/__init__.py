@@ -156,12 +156,12 @@ class Lambda(Maker):
 
     def _assemble(self):
         if self._assembler:
-            return self._func()
+            return self._func(self.document)
         return None
 
     def _finish(self, value):
         if self._finisher:
-            return self._func(value)
+            return self._func(self.document, value)
         return value
 
 

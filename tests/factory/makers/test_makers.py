@@ -33,7 +33,7 @@ def test_dict_of():
 
     maker = makers.DictOf({
         'json_type': 'foo',
-        'maker': makers.Lambda(lambda: 'bar')
+        'maker': makers.Lambda(lambda doc: 'bar')
         })
 
     # Check the assembled result
@@ -94,7 +94,7 @@ def test_lambda():
     """
 
     # Configured as assembler
-    maker = makers.Lambda(lambda: 'foo')
+    maker = makers.Lambda(lambda doc: 'foo')
 
     # Check the assembled result
     assembled = maker._assemble()
@@ -105,7 +105,7 @@ def test_lambda():
     assert finished == 'foo'
 
     # Configured as finisher
-    maker = makers.Lambda(lambda v: 'bar', assembler=False, finisher=True)
+    maker = makers.Lambda(lambda doc, v: 'bar', assembler=False, finisher=True)
 
     # Check the assembled result
     assembled = maker._assemble()
@@ -116,7 +116,7 @@ def test_lambda():
     assert finished == 'bar'
 
     # Configured as both an assembler and finisher
-    def func(value=None):
+    def func(doc, value=None):
         if value:
             return value + 'bar'
         return 'foo'
