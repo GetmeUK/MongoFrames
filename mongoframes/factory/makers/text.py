@@ -15,7 +15,8 @@ __all__ = [
 
 class Code(Maker):
     """
-    Generate a random code.
+    Generate a random code of the given length using either the default_charset
+    or optionally a custom charset.
     """
 
     # The default character set that codes are made from
@@ -42,7 +43,8 @@ class Code(Maker):
 
 class Join(Maker):
     """
-    Join the output of 2 or more `Maker`s together.
+    Join the output of 2 or more items (makers and/or values) together with a
+    seperator string.
     """
 
     def __init__(self, items, sep=' '):
@@ -77,18 +79,18 @@ class Lorem(Maker):
     """
     Generate random amounts of lorem ipsum.
 
-    To determine the amount of lorem ipsum generated you need to specify the
-    type of text structure to generate;
+    To determine the amount of text generated the type of text structure to
+    generate must be specified;
 
     - body,
     - paragraph,
     - sentence
 
-    and then the quantity;
+    along with the quantity;
 
     - paragraphs in a body,
     - sentences in a paragraph,
-    - words in a scentance.
+    - words in a scentence.
     """
 
     def __init__(self, text_type, quantity):
@@ -124,20 +126,20 @@ class Lorem(Maker):
 
 class Markov(Maker):
     """
-    Generate random amounts of text based using a Markov chain.
+    Generate random amounts of text using a Markov chain.
 
-    To determine the amount of text generated you need to specify the type of
-    text structure to generate;
+    To determine the amount of text generated the type of text structure to
+    generate must be specified;
 
     - body,
     - paragraph,
     - sentence
 
-    and then the quantity;
+    along with the quantity;
 
     - paragraphs in a body,
     - sentences in a paragraph,
-    - words in a scentance.
+    - words in a sentence.
 
     This code is heavily based on (lifted from) the code presented in this
     article by Shabda Raaj:
@@ -156,7 +158,7 @@ class Markov(Maker):
         # The database to generate the text from
         self._db = db
 
-        assert db in self.__class__._dbs, 'Text database does not exist'
+        assert db in self.__class__._dbs, 'Word database does not exist'
 
         # The type of text structure to generate
         self._text_type = text_type
@@ -171,6 +173,7 @@ class Markov(Maker):
 
     @property
     def database(self):
+        """Return the selected word database"""
         return self.__class__._dbs[self._db]
 
     # Private methods
@@ -253,7 +256,7 @@ class Markov(Maker):
 
     @classmethod
     def init_word_db(cls, name, text):
-        """Initialize the database of words for the maker"""
+        """Initialize a database of words for the maker with the given name"""
         # Prep the words
         text = text.replace('\n', ' ').replace('\r', ' ')
         words = [w.strip() for w in text.split(' ') if w.strip()]

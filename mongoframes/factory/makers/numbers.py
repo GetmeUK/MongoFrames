@@ -45,7 +45,7 @@ class Float(Maker):
 
 class Int(Float):
     """
-    Generate a random int between two values.
+    Generate a random integer between two values.
     """
 
     def _assemble(self):

@@ -16,8 +16,8 @@ __all__ = [
 
 class Cycle(Maker):
     """
-    Pick the next item from a list of makers or values cycling through the list
-    and repeating when we reach the end.
+    Pick the next item from a list of makers and/or values cycling through the
+    list and repeating when we reach the end.
     """
 
     def __init__(self, items):
@@ -57,7 +57,7 @@ class Cycle(Maker):
 
 class OneOf(Maker):
     """
-    Pick one item from a list of makers or values.
+    Pick one item from a list of makers and/or values.
     """
 
     def __init__(self, items, weights=None):
@@ -116,8 +116,8 @@ class OneOf(Maker):
 
 class RandomReference(Maker):
     """
-    Pick a reference document at random from a collection optionally applying a
-    constraint.
+    Pick a reference document at random from a collection (determined by the
+    given frame_cls) optionally applying a constraint.
     """
 
     def __init__(self, frame_cls, constraint=None):
@@ -159,7 +159,7 @@ class RandomReference(Maker):
 
 class SomeOf(Maker):
     """
-    Pick one or more items from a list of makers or values.
+    Pick one or more items from a list of makers and/or values.
     """
 
     def __init__(
@@ -230,7 +230,7 @@ class SomeOf(Maker):
         Given a weighted set and sample size return the probabilty that the
         weight `i` will be present in the sample.
 
-        Created to test the output of the `SomeOf` maker class. The maths was
+        Created to test the output of the `SomeOf` maker class. The math was
         provided by Andy Blackshaw - thank you dad :)
         """
 
