@@ -169,34 +169,6 @@ def test_list_of():
     # Check the result was reset after the first call
     assert assembled == [[i, None] for i in [0, 1, 2, 3, 4, 0]]
 
-def test_reference(mongo_client, example_dataset_one):
-    """
-    `Reference` makers should return the `_id` value for a document in a
-    collection looked up using the field name and value.
-    """
-
-    # Configured with static value
-    maker = makers.Reference(ComplexDragon, 'name', 'Burt')
-
-    # Check the assembled result
-    assembled = maker._assemble()
-    assert assembled == None
-
-    # Check the finished result
-    finished = maker._finish(assembled)
-    assert finished == ComplexDragon.one()._id
-
-    # Configured with maker
-    maker = makers.Reference(ComplexDragon, 'name', makers.Static('Burt'))
-
-    # Check the assembled result
-    assembled = maker._assemble()
-    assert assembled == 'Burt'
-
-    # Check the finished result
-    finished = maker._finish(assembled)
-    assert finished == ComplexDragon.one()._id
-
 def test_static():
     """`Static` makers should return the value you initialize them with"""
 

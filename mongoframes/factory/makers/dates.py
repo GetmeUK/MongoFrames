@@ -12,8 +12,8 @@ __all__ = [
 
 class DateBetween(Maker):
     """
-    Return a date between two dates. Dates are specified as be specified either as
-    `datetime.date` instances or as a string of the form:
+    Return a date between two dates. Dates can be specified either as
+    `datetime.date` instances or as strings of the form:
 
         "{yesterday|today|tomorrow}{+|-}{no_of_days}"
     """
