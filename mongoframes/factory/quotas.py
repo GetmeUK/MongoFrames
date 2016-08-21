@@ -9,10 +9,10 @@ __all__ = [
 class Quota:
     """
     A base class for implementing variable quota (although the base class
-    provides a fixed value and is no difference over sending a integer or float
+    provides a fixed value and is no different than using an integer or float
     value).
 
-    The `Quota` class can be safely used as an argument for `Factory`s and
+    The Quota class can be safely used as an argument for `Factory`s and
     `Maker`s.
     """
 
