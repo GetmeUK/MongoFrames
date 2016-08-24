@@ -167,7 +167,7 @@ class Lambda(Maker):
 
 class ListOf(Maker):
     """
-    Make a list of values using another maker to generate each value.
+    Generate a list of values of the given quantity using the specified maker.
     """
 
     def __init__(self, maker, quantity, reset_maker=False):
