@@ -19,24 +19,25 @@ class Factory:
         Once assembled the generated documents are returned as a list and can be
         either used immediately to populate the database or saved out as a
         template for populating the database in future (for example when
-            building a set of test data).
+        building a set of test data).
 
-    Population (see `populate`)
+    Finishing and population (see `finish` and `populate`)
     :   A database is populated based on a `Blueprint` and pre-assembled list of
         documents.
 
-        During this stage dynamic data is converted to static data suitable for
-        inserting in the database (this process is call finishing).
+        During this stage dynamic data is converted to static data (this process
+        is call finishing) and inserted into the database.
 
-        Prior to and after inserting the a document into the database the
-        `factory_insert` and `factory_inserted` events are triggered to allow
-        `Frame` classes to modify the insert behaviour for factories.
+        Before populate inserts the finished documents into the database it
+        converts each document into a Frame instance and calls the on_fake
+        method against the Blueprint, after the documents are inserted into the
+        database it calls the on_faked method against the Blueprint.
     """
 
     # Public methods
 
     def assemble(self, blueprint, quota):
-        """Assemble a quota of fake documents"""
+        """Assemble a quota of documents"""
 
         # Reset the blueprint
         blueprint.reset()
@@ -49,7 +50,7 @@ class Factory:
         return documents
 
     def finish(self, blueprint, documents):
-        """Apply finishing to a list of pre-assembled fake documents"""
+        """Finish a list of pre-assembled documents"""
 
         # Reset the blueprint
         blueprint.reset()
@@ -62,7 +63,7 @@ class Factory:
         return finished
 
     def populate(self, blueprint, documents):
-        """Populate the database with fake documents"""
+        """Populate the database with documents"""
 
         # Finish the documents
         documents = self.finish(blueprint, documents)
@@ -94,11 +95,10 @@ class Factory:
 
     def reassemble(self, blueprint, fields, documents):
         """
-        Reassemble a the given set of fields for a list of pre-assembed fake
-        documents.
+        Reassemble the given set of fields for a list of pre-assembed documents.
 
         NOTE: Reassembly is done in place, since the data you send the method
-        should be JSON type safe if you need to retain a the existing documents
+        should be JSON type safe, if you need to retain the existing document
         it is recommended that you copy them using `copy.deepcopy`.
         """
 
