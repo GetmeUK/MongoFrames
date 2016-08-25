@@ -44,7 +44,7 @@ class _BlueprintMeta(type):
 
 class Blueprint(metaclass=_BlueprintMeta):
     """
-    Blueprints provide the instuctions for producing a fake document for a
+    Blueprints provide the instructions for producing a fake document for a
     collection represented by a `Frame` class.
     """
 
@@ -56,18 +56,18 @@ class Blueprint(metaclass=_BlueprintMeta):
 
     @classmethod
     def get_frame_cls(cls):
-        """Return the `Frame` type class for the blueprint"""
+        """Return the `Frame` class for the blueprint"""
         return cls._frame_cls
 
     @classmethod
     def get_instructions(cls):
-        """Return the instuctions for the blueprint"""
+        """Return the instructions for the blueprint"""
         return dict(cls._instructions)
 
     @classmethod
     def get_meta_fields(cls):
         """Return the meta-fields for the blueprint"""
-        return cls._meta_fields_cls
+        return cls._meta_fields
 
     # Factory methods
 
@@ -83,8 +83,8 @@ class Blueprint(metaclass=_BlueprintMeta):
     @classmethod
     def finish(cls, document):
         """
-        Take a pre-assembled document and convert all dynamic values to static
-        values.
+        Take a assembled document and convert all assembled values to
+        finished values.
         """
         document_copy = {}
         for field_name, value in document.items():
@@ -96,8 +96,8 @@ class Blueprint(metaclass=_BlueprintMeta):
     @classmethod
     def reassemble(cls, fields, document):
         """
-        Take a pre-assembled document and reassemble the given set of fields
-        for it in place.
+        Take a previously assembled document and reassemble the given set of
+        fields for it in place.
         """
         for field_name in cls._instructions:
             if field_name in fields:
@@ -109,9 +109,9 @@ class Blueprint(metaclass=_BlueprintMeta):
     def reset(cls):
         """
         Reset the blueprint. Blueprints are typically reset before being used to
-        assemble a quota of documents. Resetting a blueprint will in turn reset
-        all the makers for the blueprint allowing internal counters and a like
-        to be reset.
+        assemble a quota of documents. Resetting a Blueprint will in turn reset
+        all the Maker instances defined as instructions for the Blueprint
+        allowing internal counters and alike to be reset.
         """
         # Reset instructions
         for maker in cls._instructions.values():
@@ -121,7 +121,7 @@ class Blueprint(metaclass=_BlueprintMeta):
 
     @classmethod
     def on_fake(cls, frames):
-        """Hook called before frames are added"""
+        """Called before frames are inserted"""
 
         # By default the hook will simply trigger a `fake` event against the
         # frame. This allows the overriding method to control this behaviour.
@@ -129,7 +129,7 @@ class Blueprint(metaclass=_BlueprintMeta):
 
     @classmethod
     def on_faked(cls, frames):
-        """Hook called after frames are added"""
+        """Called after frames are inserted"""
 
         # By default the hook will simply trigger a `fake` event against the
         # frame. This allows the overriding method to control this behaviour.

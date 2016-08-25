@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import re
 
 from mongoframes.factory import blueprints
@@ -18,6 +19,36 @@ def test_blueprint_defaults():
     assert DragonBlueprint._frame_cls == Dragon
     assert DragonBlueprint._instructions == {}
     assert DragonBlueprint._meta_fields == set([])
+
+def test_blueprint_getters():
+    """
+    The `Blueprint` getter methods:
+
+    - `get_frame_cls`
+    - `get_instructions`
+    - `get_meta_fields`
+
+    Should return correct values.
+    """
+
+    # Configure the blueprint
+    class DragonBlueprint(blueprints.Blueprint):
+
+        _frame_cls = Dragon
+        _meta_fields = {'dummy_prop'}
+
+        name = makers.Static('Burt')
+        breed = makers.Static('Fire-drake')
+        dummy_prop = makers.Static('foo')
+
+    # Check the getter return values
+    assert DragonBlueprint.get_frame_cls() == Dragon
+    assert DragonBlueprint.get_instructions() == OrderedDict([
+        ('name', DragonBlueprint.name),
+        ('breed', DragonBlueprint.breed),
+        ('dummy_prop', DragonBlueprint.dummy_prop)
+        ])
+    assert DragonBlueprint.get_meta_fields() == {'dummy_prop'}
 
 def test_blueprint_assemble():
     """
