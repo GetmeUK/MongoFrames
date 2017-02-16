@@ -21,7 +21,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.2.5',
+    version='1.2.6',
 
     description='A fast unobtrusive MongoDB ODM for Python',
     long_description=long_description,
@@ -83,7 +83,7 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         'blinker>=1.4',
-        'fake-factory>=0.5.9',
+        'Faker>=0.7.7',
         'pymongo>=3'
         ],
 
