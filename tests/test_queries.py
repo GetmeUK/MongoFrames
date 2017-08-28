@@ -97,6 +97,12 @@ def test_nor():
     assert Nor(Q.foo == 123, Q.bar != 456).to_dict() == \
         {'$nor': [{'foo': 123}, {'bar': {'$ne': 456}}]}
 
+# Sorting
+
+def test_sort_by():
+    """Should return sort instructions for a list of `Q` instances"""
+    assert SortBy(Q.dob.desc, Q.name) == [('dob', -1), ('name', 1)]
+
 
 # Utils
 

@@ -4,6 +4,7 @@ A set of helpers to simplify the creation of MongoDB queries.
 
 import re
 
+from pymongo import (ASCENDING, DESCENDING)
 
 __all__ = [
     # Queries
@@ -23,6 +24,9 @@ __all__ = [
     'And',
     'Or',
     'Nor',
+
+    # Sorting
+    'SortBy',
 
     # Utils
     'to_refs'
@@ -238,6 +242,20 @@ class Nor(Group):
     """
 
     operator = '$nor'
+
+
+# Sorting
+
+def SortBy(*qs):
+    """Convert a list of Q objects into list of sort instructions"""
+
+    sort = []
+    for q in qs:
+        if q._path.endswith('.desc'):
+            sort.append((q._path[:-5], DESCENDING))
+        else:
+            sort.append((q._path, ASCENDING))
+    return sort
 
 
 # Utils
