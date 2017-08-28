@@ -532,8 +532,13 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                     if expect_map:
                         # Dictionary of embedded documents
                         raw_subs += value.values()
-                        value = {k: sub(v) for k, v in value.items() \
-                                if isinstance(v, dict)}
+                        for k, v in value.items():
+                            if isinstance(v ,list):
+                                value[k] = [
+                                    sub(u) for u in v if isinstance(u, dict)]
+                            else:
+                                value[k] = sub(v)
+
                     # Single embedded document
                     else:
                         raw_subs.append(value)
