@@ -591,10 +591,10 @@ def test_cascade(mongo_client, example_dataset_many):
 
     # Listen for delete events against dragons and delete any associated lair at
     # the same time.
-    def on_delete(sender, frames):
+    def on_deleted(sender, frames):
         ComplexDragon.cascade(Lair, 'lair', frames)
 
-    ComplexDragon.listen('deleted', on_delete)
+    ComplexDragon.listen('deleted', on_deleted)
 
     # Delete a dragon and check the associated lair is also deleted
     burt = ComplexDragon.one(Q.name == 'Burt')
@@ -626,10 +626,10 @@ def test_pull(mongo_client, example_dataset_many):
     # Listen for delete events against lairs and pull any deleted lair from the
     # associated dragons. For the sake of the tests here we're storing multiple
     # lairs against the lair attribute instead of the intended one.
-    def on_delete(sender, frames):
+    def on_deleted(sender, frames):
         Lair.pull(ComplexDragon, 'lair', frames)
 
-    ComplexDragon.listen('deleted', on_delete)
+    Lair.listen('deleted', on_deleted)
 
     # List Burt stay in a few lairs
     castle = Lair.one(Q.name == 'Castle')
@@ -642,8 +642,8 @@ def test_pull(mongo_client, example_dataset_many):
     # nullified.
     lair = Lair.one(Q.name == 'Cave')
     lair.delete()
-    burt.reload()
-    assert burt.lair == [castle]
+    burt.reload(projection=None)
+    assert burt.lair == [castle._id]
 
 def test_listen(mongo_client):
     """Should add a callback for a signal against the class"""

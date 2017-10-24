@@ -716,7 +716,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
     def pull(cls, ref_cls, field, frames):
         """Pull references from a list field (does not emit signals)"""
         from mongoframes.queries import to_refs
-        ids = [to_refs(f[field]) for f in frames if f.get(field)]
+        ids = [to_refs(f) for f in frames]
         ref_cls.get_collection().update_many(
             {field: {'$in': ids}},
             {'$pull': {field: {'$in': ids}}}
