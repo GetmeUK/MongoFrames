@@ -706,7 +706,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
     def nullify(cls, ref_cls, field, frames):
         """Nullify a reference field (does not emit signals)"""
         from mongoframes.queries import to_refs
-        ids = [to_refs(f[field]) for f in frames if f.get(field)]
+        ids = [to_refs(f) for f in frames]
         ref_cls.get_collection().update_many(
             {field: {'$in': ids}},
             {'$set': {field: None}}

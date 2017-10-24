@@ -607,16 +607,17 @@ def test_nullify(mongo_client, example_dataset_many):
 
     # Listen for delete events against lairs and nullify the lair field against
     # associated dragons
-    def on_delete(sender, frames):
+    def on_deleted(sender, frames):
         Lair.nullify(ComplexDragon, 'lair', frames)
 
-    ComplexDragon.listen('deleted', on_delete)
+    Lair.listen('deleted', on_deleted)
 
     # Delete a lair and check the associated field against the dragon has been
     # nullified.
     lair = Lair.one(Q.name == 'Cave')
     lair.delete()
-    burt = ComplexDragon.one(Q.name == 'Burt')
+
+    burt = ComplexDragon.one(Q.name == 'Burt', projection=None)
     assert burt.lair == None
 
 def test_pull(mongo_client, example_dataset_many):
