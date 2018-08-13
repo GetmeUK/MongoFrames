@@ -525,7 +525,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
             raw_subs = []
             for document in documents:
                 value = cls._path_to_value(path, document)
-                if not value:
+                if value is None:
                     continue
 
                 if isinstance(value, dict):

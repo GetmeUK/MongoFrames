@@ -280,7 +280,7 @@ def test_unique():
 
     # Reset should clear the generate unique values from the maker and allow
     # those values to be generated again.
-    maker = makers.Unique(makers.Static('foo'))
+    maker = makers.Unique(makers.Static('foo'), assembler=False)
 
     failed = False
     try:

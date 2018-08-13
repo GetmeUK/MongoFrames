@@ -196,7 +196,8 @@ class ListOf(Maker):
         if self._reset_maker:
             self._maker.reset()
 
-        return [self._maker(v) for v in value]
+        with self._maker.target(self.document):
+            return [self._maker(v) for v in value]
 
 
 class Static(Maker):
@@ -323,5 +324,6 @@ class Unique(Maker):
 
     def _finish(self, value):
         if self._assembler:
-            return self._maker(value)
+            with self._maker.target(self.document):
+                value = self._maker(value)
         return self._get_unique(value)

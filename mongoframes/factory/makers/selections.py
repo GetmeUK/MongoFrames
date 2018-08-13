@@ -51,7 +51,8 @@ class Cycle(Maker):
     def _finish(self, value):
         item = self._items[value[0]]
         if isinstance(item, Maker):
-            return item._finish(value[1])
+            with item.target(self.document):
+                return item._finish(value[1])
         return item
 
 
@@ -86,7 +87,8 @@ class OneOf(Maker):
     def _finish(self, value):
         item = self._items[value[0]]
         if isinstance(item, Maker):
-            return item._finish(value[1])
+            with item.target(self.document):
+                return item._finish(value[1])
         return item
 
     @staticmethod
@@ -219,7 +221,8 @@ class SomeOf(Maker):
         for sample in value:
             item = self._items[sample[0]]
             if isinstance(item, Maker):
-                values.append(item._finish(sample[1]))
+                with item.target(self.document):
+                    values.append(item._finish(sample[1]))
             else:
                 values.append(item)
         return values

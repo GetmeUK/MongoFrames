@@ -86,11 +86,14 @@ class Blueprint(metaclass=_BlueprintMeta):
         Take a assembled document and convert all assembled values to
         finished values.
         """
+        target_document = {}
         document_copy = {}
         for field_name, value in document.items():
             maker = cls._instructions[field_name]
-            with maker.target(document):
+            target_document = document.copy()
+            with maker.target(target_document):
                 document_copy[field_name] = maker(value)
+                target_document[field_name] = document_copy[field_name]
         return document_copy
 
     @classmethod
