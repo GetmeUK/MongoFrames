@@ -638,11 +638,17 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         inclusive = True
         for key, value in deepcopy(projection).items():
             if isinstance(value, dict):
+                # Check for $meta projections
+                if '$meta' in value:
+                    flat_projection[key] = value
+                    continue
+
                 # Store a reference/sub-frame projection
                 if '$ref' in value:
                     references[key] = value
                 elif '$sub' in value or '$sub.' in value:
                     subs[key] = value
+
                 flat_projection[key] = True
 
             elif key == '$ref':
