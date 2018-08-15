@@ -638,18 +638,26 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         inclusive = True
         for key, value in deepcopy(projection).items():
             if isinstance(value, dict):
-                # Check for $meta projections
-                if '$meta' in value:
-                    flat_projection[key] = value
-                    continue
+
+                # Build the projection value for the field (allowing for
+                # special mongo directives).
+                project_value = {
+                    k: v for k, v in value.items()
+                    if k.startswith('$') and k not in ['$ref', '$sub', '$sub.']
+                }
+                if len(project_value) == 0:
+                    project_value = True
+                else:
+                    inclusive = False
 
                 # Store a reference/sub-frame projection
                 if '$ref' in value:
                     references[key] = value
+
                 elif '$sub' in value or '$sub.' in value:
                     subs[key] = value
 
-                flat_projection[key] = True
+                flat_projection[key] = project_value
 
             elif key == '$ref':
                 # Strip any $ref key
