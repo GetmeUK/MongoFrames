@@ -368,7 +368,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 {'_id': _id}, {'$set': document})
 
         # Send updated signal
-        signal('updated').send(cls.__class__, frames=frames)
+        signal('updated').send(cls, frames=frames)
 
     @classmethod
     def delete_many(cls, documents):
@@ -391,7 +391,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         cls.get_collection().delete_many({'_id': {'$in': ids}})
 
         # Send deleted signal
-        signal('deleted').send(cls.__class__, frames=frames)
+        signal('deleted').send(cls, frames=frames)
 
     @classmethod
     def _ensure_frames(cls, documents):
