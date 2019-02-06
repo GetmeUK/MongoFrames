@@ -511,6 +511,7 @@
   "tests/test_frames.py::test_get_db",
   "tests/test_frames.py::test_get_fields",
   "tests/test_frames.py::test_get_private_fields",
+  "tests/test_frames.py::test_flattern_projection",
   "tests/test_pagination.py::test_paginator",
   "tests/test_pagination.py::test_paginator_with_filter",
   "tests/test_pagination.py::test_paginator_with_sort",

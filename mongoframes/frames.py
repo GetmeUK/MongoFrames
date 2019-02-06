@@ -657,7 +657,19 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 elif '$sub' in value or '$sub.' in value:
                     subs[key] = value
 
-                flat_projection[key] = project_value
+                    if '$sub' in value:
+                        sub_frame = value['$sub']
+
+                    if '$sub,' in value:
+                        sub_frame = value['$sub.']
+
+                    project_value = sub_frame._projection_to_paths(key, value)
+
+                if isinstance(project_value, dict):
+                    flat_projection.update(project_value)
+
+                else:
+                    flat_projection[key] = project_value
 
             elif key == '$ref':
                 # Strip any $ref key
@@ -800,3 +812,38 @@ class SubFrame(_BaseFrame):
         # Add sub-frames to the documents (if required)
         if subs:
             Frame._apply_sub_frames(documents, subs)
+
+    @classmethod
+    def _projection_to_paths(cls, root_key, projection):
+        """
+        Expand a $sub/$sub. projection to a single projection of True (if
+        inclusive) or a map of full paths (e.g `employee.company.tel`).
+        """
+
+        # Referenced projections are handled separately so just flag the
+        # reference field to true.
+        if '$ref' in projection:
+            return True
+
+        sub_projection = {}
+        for key, value in projection.items():
+            if key in ['$sub', '$sub.']:
+                continue
+
+            sub_key = root_key + '.' + key
+
+            if isinstance(value, dict):
+                sub_value = cls._projection_to_paths(sub_key, value)
+                if isinstance(sub_value, dict):
+                    sub_projection.update(sub_value)
+                else:
+                    sub_projection[sub_key] = True
+
+            else:
+                sub_projection[sub_key] = True
+
+        if len(sub_projection) == 0:
+            # No specific keys so this is inclusive
+            return True
+
+        return sub_projection

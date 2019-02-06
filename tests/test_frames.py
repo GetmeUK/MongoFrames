@@ -729,3 +729,24 @@ def test_get_fields(mongo_client):
 def test_get_private_fields(mongo_client):
     """Return the private fields for the class"""
     assert Dragon.get_private_fields() == {'breed'}
+
+def test_flattern_projection():
+    """Flattern projection"""
+
+    projection, refs, subs = Lair._flatten_projection({
+        'name': True,
+        'inventory': {
+            '$sub': Inventory,
+            'gold': True,
+            'secret_draw': {
+                '$sub': Inventory,
+                'gold': True
+            }
+        }
+    })
+
+    assert projection == {
+        'name': True,
+        'inventory.gold': True,
+        'inventory.secret_draw.gold': True
+    }
