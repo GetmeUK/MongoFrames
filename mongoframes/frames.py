@@ -660,7 +660,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                     if '$sub' in value:
                         sub_frame = value['$sub']
 
-                    if '$sub,' in value:
+                    if '$sub.' in value:
                         sub_frame = value['$sub.']
 
                     project_value = sub_frame._projection_to_paths(key, value)
