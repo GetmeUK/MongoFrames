@@ -825,6 +825,7 @@ class SubFrame(_BaseFrame):
         if '$ref' in projection:
             return True
 
+        inclusive = True
         sub_projection = {}
         for key, value in projection.items():
             if key in ['$sub', '$sub.']:
@@ -841,8 +842,9 @@ class SubFrame(_BaseFrame):
 
             else:
                 sub_projection[sub_key] = True
+                inclusive = False
 
-        if len(sub_projection) == 0:
+        if inclusive:
             # No specific keys so this is inclusive
             return True
 
