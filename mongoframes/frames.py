@@ -831,6 +831,11 @@ class SubFrame(_BaseFrame):
             if key in ['$sub', '$sub.']:
                 continue
 
+            if key.startswith('$'):
+                sub_projection[root_key] = {key: value}
+                inclusive = False
+                continue
+
             sub_key = root_key + '.' + key
 
             if isinstance(value, dict):
