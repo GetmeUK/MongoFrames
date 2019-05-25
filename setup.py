@@ -24,6 +24,7 @@ setup(
     version='1.3.4',
     description='A fast unobtrusive MongoDB ODM for Python',
     long_description=long_description,
+    long_description_content_type='text/markdown',
 
     # The project's main homepage.
     url='https://github.com/GetmeUK/MongoFrames',
