@@ -4,6 +4,7 @@ bin/
 lib/
 share/
 dist/
+venv/
 .tox/
 *.egg-info/
 *.egg
@@ -17,3 +18,4 @@ pyvenv.cfg
 # due to using tox and pytest
 .tox
 .cache
+.pytest_cache/

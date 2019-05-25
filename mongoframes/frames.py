@@ -364,7 +364,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         # Update the documents
         for document in documents:
             _id = document.pop('_id')
-            cls.get_collection().update(
+            cls.get_collection().update_one(
                 {'_id': _id}, {'$set': document})
 
         # Send updated signal
@@ -426,8 +426,16 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         if isinstance(filter, (Condition, Group)):
             filter = filter.to_dict()
 
-        return cls.get_collection().count(to_refs(filter), **kwargs)
+        filter = to_refs(filter)
 
+        if filter:
+            return cls.get_collection().count_documents(
+                to_refs(filter), 
+                **kwargs
+            )
+        else:
+            return cls.get_collection().estimated_document_count(**kwargs)
+            
     @classmethod
     def ids(cls, filter=None, **kwargs):
         """Return a list of Ids for documents matching the filter"""
@@ -591,6 +599,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
             # Find the referenced documents
             ref = projection.pop('$ref')
+
             frames = ref.many(
                 {'_id': {'$in': list(ids)}},
                 projection=projection
@@ -648,6 +657,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 if len(project_value) == 0:
                     project_value = True
                 else:
+                    project_value = {key: project_value}
                     inclusive = False
 
                 # Store a reference/sub-frame projection
@@ -677,6 +687,10 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
             elif key == '$sub' or key == '$sub.':
                 # Strip any $sub key
+                continue
+
+            elif key.startswith('$'):
+                # Strip mongo operators
                 continue
 
             else:
