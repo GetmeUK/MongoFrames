@@ -1,3 +1,5 @@
+from contextlib import contextmanager
+
 from blinker import signal
 from bson.objectid import ObjectId
 from copy import deepcopy
@@ -430,12 +432,12 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
         if filter:
             return cls.get_collection().count_documents(
-                to_refs(filter), 
+                to_refs(filter),
                 **kwargs
             )
         else:
             return cls.get_collection().estimated_document_count(**kwargs)
-            
+
     @classmethod
     def ids(cls, filter=None, **kwargs):
         """Return a list of Ids for documents matching the filter"""
@@ -779,7 +781,11 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
     @classmethod
     def get_collection(cls):
         """Return a reference to the database collection for the class"""
-        return getattr(cls.get_db(), cls._collection)
+        return getattr(
+            cls,
+            '_collection_context',
+            getattr(cls.get_db(), cls._collection)
+        )
 
     @classmethod
     def get_db(cls):
@@ -787,6 +793,23 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         if cls._db:
             return getattr(cls._client, cls._db)
         return cls._client.get_default_database()
+
+    @classmethod
+    @contextmanager
+    def with_options(cls, **options):
+        existing_context = getattr(cls, '_collection_context', None)
+
+        try:
+            collection = getattr(cls.get_db(), cls._collection)
+            cls._collection_context = collection.with_options(**options)
+            yield cls._collection_context
+
+        finally:
+            if existing_context is None:
+                del cls._collection_context
+
+            else:
+                cls._collection_context = existing_context
 
 
 class SubFrame(_BaseFrame):

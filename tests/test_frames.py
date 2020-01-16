@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from time import sleep
 from unittest.mock import Mock
 
+from pymongo import ReadPreference
 from mongoframes import *
 
 from tests.fixtures import *
@@ -750,3 +751,23 @@ def test_flattern_projection():
         'inventory.gold': True,
         'inventory.secret_draw.gold': True
     }
+
+def test_with_options():
+    """Flattern projection"""
+
+    collection = Dragon.get_collection()
+
+    with Dragon.with_options(read_preference=ReadPreference.SECONDARY):
+        assert Dragon.get_collection().read_preference \
+                == ReadPreference.SECONDARY
+
+        with Dragon.with_options(
+                read_preference=ReadPreference.PRIMARY_PREFERRED):
+
+            assert Dragon.get_collection().read_preference \
+                    == ReadPreference.PRIMARY_PREFERRED
+
+        assert Dragon.get_collection().read_preference \
+                == ReadPreference.SECONDARY
+
+    assert collection.read_preference == ReadPreference.PRIMARY
