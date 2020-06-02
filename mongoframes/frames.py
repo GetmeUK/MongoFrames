@@ -4,6 +4,7 @@ from blinker import signal
 from bson.objectid import ObjectId
 from copy import deepcopy
 from datetime import date, datetime, time, timezone
+from pymongo import UpdateOne
 
 __all__ = [
     'Frame',
@@ -364,10 +365,11 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
             documents = [to_refs(f._document) for f in frames]
 
         # Update the documents
+        requests = []
         for document in documents:
             _id = document.pop('_id')
-            cls.get_collection().update_one(
-                {'_id': _id}, {'$set': document})
+            requests.append(UpdateOne({'_id': _id}, {'$set': document}))
+        cls.get_collection().bulk_write(requests)
 
         # Send updated signal
         signal('updated').send(cls, frames=frames)
