@@ -139,7 +139,11 @@ def ElemMatch(q, *conditions):
     """
     new_condition = {}
     for condition in conditions:
-        deep_merge(condition.to_dict(), new_condition)
+
+        if isinstance(condition, (Condition, Group)):
+            condition = condition.to_dict()
+
+        deep_merge(condition, new_condition)
 
     return Condition(q._path, new_condition, '$elemMatch')
 
