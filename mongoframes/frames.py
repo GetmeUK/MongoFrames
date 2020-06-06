@@ -234,6 +234,27 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         # Send inserted signal
         signal('inserted').send(self.__class__, frames=[self])
 
+    def unset(self, *fields):
+        """Unset the given list of fields for this document."""
+
+        # Send update signal
+        signal('update').send(self.__class__, frames=[self])
+
+        # Clear the fields from the document and build the unset object
+        unset = {}
+        for field in fields:
+            self._document.pop(field, None)
+            unset[field] = True
+
+        # Update the document
+        self.get_collection().update_one(
+            {'_id': self._id},
+            {'$unset': unset}
+        )
+
+        # Send updated signal
+        signal('updated').send(self.__class__, frames=[self])
+
     def update(self, *fields):
         """
         Update this document. Optionally a specific list of fields to update can
@@ -369,7 +390,44 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         for document in documents:
             _id = document.pop('_id')
             requests.append(UpdateOne({'_id': _id}, {'$set': document}))
+
         cls.get_collection().bulk_write(requests)
+
+        # Send updated signal
+        signal('updated').send(cls, frames=frames)
+
+    @classmethod
+    def unset_many(self, documents, *fields):
+        """Unset the given list of fields for this document."""
+
+        # Ensure all documents have been converted to frames
+        frames = cls._ensure_frames(documents)
+
+        all_count = len(documents)
+        assert len([f for f in frames if '_id' in f._document]) == all_count, \
+                "Can't update documents without `_id`s"
+
+        # Send update signal
+        signal('update').send(cls, frames=frames)
+
+        # Build the unset object
+        unset = {}
+        for field in fields:
+            unset[field] = True
+
+        # Clear the fields from the documents and build a list of ids to
+        # update.
+        ids = []
+        for document in documents:
+            ids.append(document._id)
+            for frame in frames:
+                frame._document.pop(field, None)
+
+        # Update the document
+        self.get_collection().update_many(
+            {'_id': {'$in': ids}},
+            {'$unset': unset}
+        )
 
         # Send updated signal
         signal('updated').send(cls, frames=frames)

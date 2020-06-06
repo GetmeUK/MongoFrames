@@ -175,6 +175,25 @@ def test_insert(mongo_client):
     assert albert.name == 'Albert'
     assert albert.breed == 'Stone dragon'
 
+def test_unset(mongo_client, example_dataset_one):
+    """Should unset fields against a document on the database"""
+
+    # Unset name and breed
+    burt = ComplexDragon.one(Q.name == 'Burt')
+    burt.unset('name', 'breed')
+
+    assert burt.name == None
+    assert burt.breed == None
+    assert 'name' not in burt.to_json_type()
+    assert 'breed' not in burt.to_json_type()
+
+    burt.reload()
+
+    assert burt.name == None
+    assert burt.breed == None
+    assert 'name' not in burt.to_json_type()
+    assert 'breed' not in burt.to_json_type()
+
 def test_update(mongo_client, example_dataset_one):
     """Should update a document on the database"""
 
@@ -278,6 +297,28 @@ def test_insert_many(mongo_client):
     assert dragons[1].breed == 'Fire-drake'
     assert dragons[2].name == 'Albert'
     assert dragons[2].breed == 'Stone dragon'
+
+def test_unset_many(mongo_client, example_dataset_many):
+    """Should unset fields against multiple documents on the database"""
+
+    # Unset name and breed
+    dragons = ComplexDragon.many(sort=[('_id', ASC)])
+    for dragon in dragons:
+        dragon.unset('name', 'breed')
+
+    for dragon in dragons:
+
+        assert dragon.name == None
+        assert dragon.breed == None
+        assert 'name' not in dragon.to_json_type()
+        assert 'breed' not in dragon.to_json_type()
+
+        dragon.reload()
+
+        assert dragon.name == None
+        assert dragon.breed == None
+        assert 'name' not in dragon.to_json_type()
+        assert 'breed' not in dragon.to_json_type()
 
 def test_update_many(mongo_client, example_dataset_many):
     """Should update mulitple documents on the database"""
