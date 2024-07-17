@@ -218,7 +218,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
     # Operations
 
-    def insert(self):
+    def insert(self, **kwargs):
         """Insert this document"""
         from mongoframes.queries import to_refs
 
@@ -229,33 +229,15 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         document = to_refs(self._document)
 
         # Insert the document and update the Id
-        self._id = self.get_collection().insert_one(document).inserted_id
+        self._id = self.get_collection().insert_one(
+            document,
+            **kwargs
+        ).inserted_id
 
         # Send inserted signal
         signal('inserted').send(self.__class__, frames=[self])
 
-    def unset(self, *fields):
-        """Unset the given list of fields for this document."""
-
-        # Send update signal
-        signal('update').send(self.__class__, frames=[self])
-
-        # Clear the fields from the document and build the unset object
-        unset = {}
-        for field in fields:
-            self._document.pop(field, None)
-            unset[field] = True
-
-        # Update the document
-        self.get_collection().update_one(
-            {'_id': self._id},
-            {'$unset': unset}
-        )
-
-        # Send updated signal
-        signal('updated').send(self.__class__, frames=[self])
-
-    def update(self, *fields):
+    def update(self, *fields, **kwargs):
         """
         Update this document. Optionally a specific list of fields to update can
         be specified.
@@ -280,12 +262,16 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         document.pop('_id', None)
 
         # Update the document
-        self.get_collection().update_one({'_id': self._id}, {'$set': document})
+        self.get_collection().update_one(
+            {'_id': self._id},
+            {'$set': document},
+            **kwargs
+        )
 
         # Send updated signal
         signal('updated').send(self.__class__, frames=[self])
 
-    def upsert(self, *fields):
+    def upsert(self, *fields, **kwargs):
         """
         Update or Insert this document depending on whether it exists or not.
         The presense of an `_id` value in the document is used to determine if
@@ -301,17 +287,39 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
         # If no `_id` is provided then we insert the document
         if not self._id:
-            return self.insert()
+            return self.insert(**kwargs)
 
         # If an `_id` is provided then we need to check if it exists before
         # performing the `upsert`.
         #
         if self.count({'_id': self._id}) == 0:
-            self.insert()
+            self.insert(**kwargs)
         else:
-            self.update(*fields)
+            self.update(*fields, **kwargs)
 
-    def delete(self):
+    def unset(self, *fields, **kwargs):
+        """Unset the given list of fields for this document."""
+
+        # Send update signal
+        signal('update').send(self.__class__, frames=[self])
+
+        # Clear the fields from the document and build the unset object
+        unset = {}
+        for field in fields:
+            self._document.pop(field, None)
+            unset[field] = True
+
+        # Update the document
+        self.get_collection().update_one(
+            {'_id': self._id},
+            {'$unset': unset},
+            **kwargs
+        )
+
+        # Send updated signal
+        signal('updated').send(self.__class__, frames=[self])
+
+    def delete(self, **kwargs):
         """Delete this document"""
 
         assert '_id' in self._document, "Can't delete documents without `_id`"
@@ -320,13 +328,13 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         signal('delete').send(self.__class__, frames=[self])
 
         # Delete the document
-        self.get_collection().delete_one({'_id': self._id})
+        self.get_collection().delete_one({'_id': self._id}, **kwargs)
 
         # Send deleted signal
         signal('deleted').send(self.__class__, frames=[self])
 
     @classmethod
-    def insert_many(cls, documents):
+    def insert_many(cls, documents, **kwargs):
         """Insert a list of documents"""
         from mongoframes.queries import to_refs
 
@@ -340,7 +348,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         documents = [to_refs(f._document) for f in frames]
 
         # Bulk insert
-        ids = cls.get_collection().insert_many(documents).inserted_ids
+        ids = cls.get_collection().insert_many(documents, **kwargs).inserted_ids
 
         # Apply the Ids to the frames
         for i, id in enumerate(ids):
@@ -352,7 +360,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         return frames
 
     @classmethod
-    def update_many(cls, documents, *fields):
+    def update_many(cls, documents, *fields, **kwargs):
         """
         Update multiple documents. Optionally a specific list of fields to
         update can be specified.
@@ -391,13 +399,13 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
             _id = document.pop('_id')
             requests.append(UpdateOne({'_id': _id}, {'$set': document}))
 
-        cls.get_collection().bulk_write(requests)
+        cls.get_collection().bulk_write(requests, **kwargs)
 
         # Send updated signal
         signal('updated').send(cls, frames=frames)
 
     @classmethod
-    def unset_many(self, documents, *fields):
+    def unset_many(self, documents, *fields, **kwargs):
         """Unset the given list of fields for this document."""
 
         # Ensure all documents have been converted to frames
@@ -426,14 +434,15 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         # Update the document
         self.get_collection().update_many(
             {'_id': {'$in': ids}},
-            {'$unset': unset}
+            {'$unset': unset},
+            **kwargs
         )
 
         # Send updated signal
         signal('updated').send(cls, frames=frames)
 
     @classmethod
-    def delete_many(cls, documents):
+    def delete_many(cls, documents, **kwargs):
         """Delete multiple documents"""
 
         # Ensure all documents have been converted to frames
@@ -450,7 +459,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         ids = [f._id for f in frames]
 
         # Delete the documents
-        cls.get_collection().delete_many({'_id': {'$in': ids}})
+        cls.get_collection().delete_many({'_id': {'$in': ids}}, **kwargs)
 
         # Send deleted signal
         signal('deleted').send(cls, frames=frames)
@@ -837,6 +846,11 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         signal(event).disconnect(func, sender=cls)
 
     # Misc.
+
+    @classmethod
+    def get_client(cls):
+        """Return the database for the collection"""
+        return cls._client
 
     @classmethod
     def get_collection(cls):

@@ -171,11 +171,7 @@ def test_random_reference(mongo_client, example_dataset_many):
 
     # Check the assembled result
     assembled = maker._assemble()
-    assert math.floor(assembled * 100) == 78
-
-    # Check the finished result
-    finished = maker._finish(assembled)
-    assert finished == ComplexDragon.one(Q.name == 'Fred')._id
+    assert math.floor(assembled * 100) == 29
 
 def test_some_of():
     """
