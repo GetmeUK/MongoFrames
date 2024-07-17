@@ -271,7 +271,7 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         # Send updated signal
         signal('updated').send(self.__class__, frames=[self])
 
-    def upsert(self, *fields, **kwargs):
+    def upsert(self, *fields):
         """
         Update or Insert this document depending on whether it exists or not.
         The presense of an `_id` value in the document is used to determine if
@@ -287,15 +287,17 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
         # If no `_id` is provided then we insert the document
         if not self._id:
-            return self.insert(**kwargs)
+            return self.insert()
 
         # If an `_id` is provided then we need to check if it exists before
         # performing the `upsert`.
-        #
-        if self.count({'_id': self._id}) == 0:
-            self.insert(**kwargs)
+        if self.get_collection().find_one(
+            {'_id': self._id},
+            projection={'_id': True}
+        ):
+            self.update(*fields)
         else:
-            self.update(*fields, **kwargs)
+            self.insert()
 
     def unset(self, *fields, **kwargs):
         """Unset the given list of fields for this document."""
