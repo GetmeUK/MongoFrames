@@ -296,7 +296,7 @@ def to_refs(value):
         return to_refs(value._document)
 
     # Lists
-    elif isinstance(value, (list, tuple)):
+    elif isinstance(value, (list, set, tuple)):
         return [to_refs(v) for v in value]
 
     # Dictionaries
