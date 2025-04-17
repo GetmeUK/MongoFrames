@@ -672,12 +672,13 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
 
             # Find the referenced documents
             ref = projection.pop('$ref')
+            ref_key = projection.pop('$ref_key', '_id')
 
             frames = ref.many(
-                {'_id': {'$in': list(ids)}},
+                {ref_key: {'$in': list(ids)}},
                 projection=projection
                 )
-            frames = {f._id: f for f in frames}
+            frames = {f[ref_key]: f for f in frames}
 
             # Add dereferenced frames to the document
             for document in documents:
@@ -718,6 +719,9 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         references = {}
         subs = {}
         inclusive = True
+
+        print('in', projection)
+
         for key, value in deepcopy(projection).items():
             if isinstance(value, dict):
 
@@ -725,7 +729,12 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 # special mongo directives).
                 project_value = {
                     k: v for k, v in value.items()
-                    if k.startswith('$') and k not in ['$ref', '$sub', '$sub.']
+                    if k.startswith('$') and k not in [
+                        '$ref',
+                        '$ref_key',
+                        '$sub',
+                        '$sub.'
+                    ]
                 }
                 if len(project_value) == 0:
                     project_value = True
@@ -758,6 +767,10 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 # Strip any $ref key
                 continue
 
+            elif key == '$ref_key':
+                # Strip any $ref_key key
+                continue
+
             elif key == '$sub' or key == '$sub.':
                 # Strip any $sub key
                 continue
@@ -770,6 +783,8 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 # Store the root projection value
                 flat_projection[key] = value
                 inclusive = False
+
+        print('out', flat_projection, references, subs)
 
         # If only references and sub-frames where specified in the projection
         # then return a full projection based on `_fields`.
