@@ -720,8 +720,6 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
         subs = {}
         inclusive = True
 
-        print('in', projection)
-
         for key, value in deepcopy(projection).items():
             if isinstance(value, dict):
 
@@ -783,8 +781,6 @@ class Frame(_BaseFrame, metaclass=_FrameMeta):
                 # Store the root projection value
                 flat_projection[key] = value
                 inclusive = False
-
-        print('out', flat_projection, references, subs)
 
         # If only references and sub-frames where specified in the projection
         # then return a full projection based on `_fields`.
